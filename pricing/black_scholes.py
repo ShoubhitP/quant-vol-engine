@@ -17,16 +17,33 @@ def black_scholes_call(stockPrice, strikePrice, vol, rFr, timeToExpiry):
 
     return callPrice
 
+def black_scholes_put(stockPrice, strikePrice, vol, rFr, timeToExpiry):
+
+    putPrice = black_scholes_call(stockPrice, strikePrice, vol, rFr, timeToExpiry) + ((strikePrice)*np.exp(-1*rFr*timeToExpiry)) - stockPrice
+    
+    return putPrice
+
+
 def main():
     
-    test1Val = black_scholes_call(100,100,0.2,0.05,1)
-    print(f"{test1Val:.2f} is the call price for test 1.")
+    testCall1Val = black_scholes_call(100, 100, 0.2,0.05,1)
+    print(f"{testCall1Val:.2f} is the call price for test 1.")
 
-    test2Val = black_scholes_call(150,100,0.2,0.05,1)
-    print(f"{test2Val:.2f} is the call price for test 2.")
+    testCall2Val = black_scholes_call(150, 100, 0.2,0.05,1)
+    print(f"{testCall2Val:.2f} is the call price for test 2.")
 
-    test3Val = black_scholes_call(50,100,0.2,0.05,1)
-    print(f"{test3Val:.2f} is the call price for test 3.")
+    testCall3Val = black_scholes_call(50, 100, 0.2, 0.05, 1)
+    print(f"{testCall3Val:.2f} is the call price for test 3.")
+
+    testPut1Val = black_scholes_put(100,100,0.2, 0.05, 1)
+    print(f"{testPut1Val:.2f} is the put price for test 1.")
+
+    testPut2Val = black_scholes_put(150,100,0.2, 0.05, 1)
+    print(f"{testPut2Val:.2f} is the put price for test 2.")
+
+    testPut3Val = black_scholes_put(50,100,0.2, 0.05, 1)
+    print(f"{testPut3Val:.2f} is the put price for test 3.")
+
 
 
 main()
