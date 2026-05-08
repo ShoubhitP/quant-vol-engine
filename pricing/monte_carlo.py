@@ -1,19 +1,19 @@
 import numpy as np
 
-def singleStockPrice(initialStock, rFr, vol, timeToExpiry):
+def singleStockPrice(initialStock, rFr, vol, timeToExpiry, z_Value):
     
-    randomDraw = np.random.normal()
-    stock_t = (initialStock * np.exp((rFr - (np.square(vol)/2))*timeToExpiry + (vol*np.sqrt(timeToExpiry)*randomDraw)))
+    stock_t = (initialStock * np.exp((rFr - (np.square(vol)/2))*timeToExpiry + (vol*np.sqrt(timeToExpiry)*z_Value)))
     return stock_t
 
 def monte_carlo_call(initialStock, strikePrice, vol, rFr, timeToExpiry, numSimulations):
 
-    callPayoff = 0
     averagePayoff = 0
-
+    
     for i in range(numSimulations):
-        simulatedPrice = singleStockPrice(initialStock, rFr, vol, timeToExpiry)
-        averagePayoff += max(simulatedPrice - strikePrice, 0)
+        randomZ = np.random.normal()
+        positiveSimulatedPrice = singleStockPrice(initialStock, rFr, vol, timeToExpiry, randomZ)
+        negativeSimulatedPrice = singleStockPrice(initialStock, rFr, vol, timeToExpiry, -1*randomZ)
+        averagePayoff += (max(positiveSimulatedPrice - strikePrice, 0) + max(negativeSimulatedPrice - strikePrice, 0)) / 2
 
     averagePayoff /= numSimulations
     return (averagePayoff * np.exp(-1*rFr*timeToExpiry))
@@ -22,9 +22,9 @@ def monte_carlo_call(initialStock, strikePrice, vol, rFr, timeToExpiry, numSimul
 
 def main():
     
-    for i in range(5):
+    '''for i in range(5):
         testPrice = singleStockPrice(100,0.05,0.2,1)
-        print(f"{testPrice:.2f} is a sample stock price at time T.")
+        print(f"{testPrice:.2f} is a sample stock price at time T.")'''
 
     testCall1Val = monte_carlo_call(100, 100, 0.2,0.05, 1, 10)
     print(f"{testCall1Val:.2f} is the monte carlo call price for test 1.")
