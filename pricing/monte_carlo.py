@@ -22,10 +22,6 @@ def monte_carlo_call(initialStock, strikePrice, vol, rFr, timeToExpiry, numSimul
 
 def main():
     
-    '''for i in range(5):
-        testPrice = singleStockPrice(100,0.05,0.2,1)
-        print(f"{testPrice:.2f} is a sample stock price at time T.")'''
-
     testCall1Val = monte_carlo_call(100, 100, 0.2,0.05, 1, 10)
     print(f"{testCall1Val:.2f} is the monte carlo call price for test 1.")
 
@@ -41,6 +37,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-    
