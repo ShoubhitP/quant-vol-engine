@@ -92,6 +92,10 @@ def volgaOption(stockPrice, strikePrice, vol, rfr, timeToExpiry):
     volgaVal = vegaOption(stockPrice, strikePrice, vol, rfr, timeToExpiry) * ((d1*d2)/vol)
     return volgaVal
 
+def zommaOption(stockPrice, strikePrice, vol, rfr, timeToExpiry):
+    d1, d2 = compute_d1_and_d2(stockPrice, strikePrice, vol, rfr, timeToExpiry)
+    zommaVal = gammaOption(stockPrice, strikePrice, vol, rfr, timeToExpiry) * (((d1*d2)-1)/vol)
+    return zommaVal
 
 def main():
     
@@ -189,5 +193,13 @@ def main():
     print(f"{testVolga2:.4f} is the volga for test 2 (ITM).")
     testVolga3 = volgaOption(50, 100, 0.2, 0.05, 1)
     print(f"{testVolga3:.4f} is the volga for test 3 (OTM).")
+
+    # Zomma Tests
+    testZomma1 = zommaOption(100, 100, 0.2, 0.05, 1)
+    print(f"{testZomma1:.4f} is the zomma for test 1 (ATM).")
+    testZomma2 = zommaOption(150, 100, 0.2, 0.05, 1)
+    print(f"{testZomma2:.4f} is the zomma for test 2 (ITM).")
+    testZomma3 = zommaOption(50, 100, 0.2, 0.05, 1)
+    print(f"{testZomma3:.4f} is the zomma for test 3 (OTM).")
 
 main()
