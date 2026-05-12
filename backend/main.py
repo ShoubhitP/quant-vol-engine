@@ -1,0 +1,74 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from pricing.monte_carlo import monte_carlo_call
+import sys
+import os
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from pricing.black_scholes import (
+    black_scholes_call, black_scholes_put,
+    delta_call, delta_put,
+    gammaOption, vegaOption,
+    theta_call, theta_put,
+    rho_call, rho_put,
+    vannaOption, volgaOption, zommaOption
+)
+
+app = FastAPI(title="Quant Vol Engine API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class OptionInput(BaseModel):
+
+    stockPrice: float
+    strikePrice: float
+    vol: float
+    rfr: float
+    timeToExpiry: float
+    numSimulations: int
+
+@app.post("/price")
+def price_option(data: OptionInput):
+    priceDict = {
+            "Call Price": black_scholes_call(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Put Price": black_scholes_put(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry)
+    }
+    return priceDict
+
+@app.post("/greeks")
+def greeksOption(data: OptionInput):
+
+    greekDict = {
+            "Delta Call": delta_call(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Delta Put": delta_put(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Gamma Value": gammaOption(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Vega Value": vegaOption(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Theta Call": theta_call(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Theta Put": theta_put(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Rho Call": rho_call(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Rho Put": rho_put(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Vanna Value": vannaOption(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Volga Value": volgaOption(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry),
+            "Zomma Value": zommaOption(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry)
+    
+    }
+    return greekDict
+
+@app.post("/monte-carlo")
+def monteCarloOption(data: OptionInput):
+
+    price, lowerBound, upperBound = monte_carlo_call(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry, data.numSimulations)
+    monteCarloDict = {
+            "Monte Carlo Value": price, 
+            "Lower Bound": lowerBound,
+            "Upper Bound": upperBound
+
+    }
+    return monteCarloDict
