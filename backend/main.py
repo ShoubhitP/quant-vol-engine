@@ -1,11 +1,15 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from pricing.monte_carlo import monte_carlo_call
 import sys
 import os
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import yfinance as yf
+import numpy as np
+import json
+from fastapi.responses import Response
+from pydantic import BaseModel
+from pricing.monte_carlo import monte_carlo_call
 
 from pricing.black_scholes import (
     black_scholes_call, black_scholes_put,
@@ -72,3 +76,16 @@ def monteCarloOption(data: OptionInput):
 
     }
     return monteCarloDict
+
+from fastapi.responses import Response
+
+@app.get("/chain/{ticker}")
+def get_chain(ticker: str):
+    tickerObject = yf.Ticker(ticker)
+    expiries = tickerObject.options
+    chain = tickerObject.option_chain(expiries[0])
+    raw = json.dumps({
+        "Calls": json.loads(chain.calls.to_json(orient="records")),
+        "Puts": json.loads(chain.puts.to_json(orient="records"))
+    }).encode("utf-8")
+    return Response(content=raw, media_type="application/json")
