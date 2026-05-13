@@ -9,19 +9,22 @@ export default function App() {
   const [numSimulations, setNumSimulations] = useState(10000)
   const [priceResult, setPriceResult] = useState(null)
   const [greeksResult, setGreeksResult] = useState(null)
+  const [monteCarloResult, setMonteCarloResult] = useState(null)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
     setLoading(true)
     const body = JSON.stringify({ stockPrice, strikePrice, vol, rfr, timeToExpiry, numSimulations })
     const headers = { "Content-Type": "application/json" }
-    const [priceRes, greeksRes] = await Promise.all([
+    const [priceRes, greeksRes, monteCarloRes] = await Promise.all([
       fetch("http://127.0.0.1:8000/price", { method: "POST", headers, body }),
-      fetch("http://127.0.0.1:8000/greeks", { method: "POST", headers, body })
+      fetch("http://127.0.0.1:8000/greeks", { method: "POST", headers, body }),
+      fetch("http://127.0.0.1:8000/monte-carlo", { method: "POST", headers, body })
     ])
-    const [priceData, greeksData] = await Promise.all([priceRes.json(), greeksRes.json()])
+    const [priceData, greeksData, monteCarloData] = await Promise.all([priceRes.json(), greeksRes.json(), monteCarloRes.json()])
     setPriceResult(priceData)
     setGreeksResult(greeksData)
+    setMonteCarloResult(monteCarloData)
     setLoading(false)
   }
 
@@ -35,6 +38,8 @@ export default function App() {
     { label: "Time to Expiry (T)", value: timeToExpiry, set: setTimeToExpiry, step: 0.01 },
     { label: "Simulations", value: numSimulations, set: setNumSimulations, step: 1000 },
   ]
+
+  //console.log("monteCarloResult state:", monteCarloResult)
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0f", color: "#e2e8f0", fontFamily: "'JetBrains Mono', 'Fira Code', monospace", padding: "2rem" }}>
@@ -107,6 +112,24 @@ export default function App() {
                   <div key={label} style={{ background: "#1e293b", borderRadius: "6px", padding: "0.75rem" }}>
                     <p style={{ fontSize: "0.6rem", color: "#64748b", marginBottom: "0.2rem", letterSpacing: "0.08em" }}>{label}</p>
                     <p style={{ fontSize: "0.95rem", color: val < 0 ? "#f87171" : "#34d399", fontWeight: 600 }}>{fmt(val)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {monteCarloResult && (
+            <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: "8px", padding: "1.5rem" }}>
+              <p style={{ fontSize: "0.7rem", color: "#38bdf8", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "1rem" }}>▸ Monte Carlo</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
+                {[
+                  ["Monte Carlo Price", monteCarloResult["Monte Carlo Value"]],
+                  ["Lower Bound", monteCarloResult["Lower Bound"]],
+                  ["Upper Bound", monteCarloResult["Upper Bound"]],
+                ].map(([label, val]) => (
+                  <div key={label} style={{ background: "#1e293b", borderRadius: "6px", padding: "0.75rem" }}>
+                    <p style={{ fontSize: "0.6rem", color: "#64748b", marginBottom: "0.2rem", letterSpacing: "0.08em" }}>{label}</p>
+                    <p style={{ fontSize: "0.95rem", color: "#38bdf8", fontWeight: 600 }}>${fmt(val)}</p>
                   </div>
                 ))}
               </div>
