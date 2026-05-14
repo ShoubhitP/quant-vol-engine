@@ -19,9 +19,9 @@ export default function App() {
     const body = JSON.stringify({ stockPrice, strikePrice, vol, rfr, timeToExpiry, numSimulations })
     const headers = { "Content-Type": "application/json" }
     const [priceRes, greeksRes, monteCarloRes] = await Promise.all([
-      fetch("http://127.0.0.1:8000/price", { method: "POST", headers, body }),
-      fetch("http://127.0.0.1:8000/greeks", { method: "POST", headers, body }),
-      fetch("http://127.0.0.1:8000/monte-carlo", { method: "POST", headers, body })
+      fetch(" https://quant-vol-engine-production.up.railway.app/price", { method: "POST", headers, body }),
+      fetch(" https://quant-vol-engine-production.up.railway.app/greeks", { method: "POST", headers, body }),
+      fetch(" https://quant-vol-engine-production.up.railway.app/monte-carlo", { method: "POST", headers, body })
     ])
     const [priceData, greeksData, monteCarloData] = await Promise.all([priceRes.json(), greeksRes.json(), monteCarloRes.json()])
     setPriceResult(priceData)
@@ -31,7 +31,7 @@ export default function App() {
   }
 
   const fetchChain = async () => {
-    const res = await fetch(`http://127.0.0.1:8000/chain/${ticker}`)
+    const res = await fetch(` https://quant-vol-engine-production.up.railway.app/chain/${ticker}`)
     const data = await res.json()
     setChainResult(data)
   }
