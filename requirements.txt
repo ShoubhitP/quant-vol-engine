@@ -4,4 +4,4 @@ pydantic==2.7.0
 numpy==1.26.4
 scipy==1.13.1
 pandas==2.2.2
-yfinance==0.2.40
+yfinance==0.2.61
