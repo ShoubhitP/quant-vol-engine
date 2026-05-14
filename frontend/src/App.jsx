@@ -10,6 +10,8 @@ export default function App() {
   const [priceResult, setPriceResult] = useState(null)
   const [greeksResult, setGreeksResult] = useState(null)
   const [monteCarloResult, setMonteCarloResult] = useState(null)
+  const [ticker, setTicker] = useState("AAPL")
+  const [chainResult, setChainResult] = useState(null)
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async () => {
@@ -26,6 +28,12 @@ export default function App() {
     setGreeksResult(greeksData)
     setMonteCarloResult(monteCarloData)
     setLoading(false)
+  }
+
+  const fetchChain = async () => {
+    const res = await fetch(`http://127.0.0.1:8000/chain/${ticker}`)
+    const data = await res.json()
+    setChainResult(data)
   }
 
   const fmt = (n) => n?.toFixed(4)
@@ -69,11 +77,26 @@ export default function App() {
               />
             </div>
           ))}
+
+          <input
+              type="text"
+              value={ticker}
+              onChange={(e) => setTicker(e.target.value.toUpperCase())}
+              placeholder="AAPL"
+              style={{ width: "100%", background: "#1e293b", border: "1px solid #1e3a5f", borderRadius: "4px", color: "#38bdf8", padding: "0.5rem 0.75rem", fontSize: "0.9rem", fontFamily: "inherit", boxSizing: "border-box", marginTop: "1rem" }}
+          />
           <button
             onClick={handleSubmit}
             style={{ width: "100%", marginTop: "0.5rem", background: "#0369a1", border: "none", borderRadius: "4px", color: "#e0f2fe", padding: "0.75rem", fontSize: "0.8rem", fontFamily: "inherit", letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
           >
             {loading ? "Computing..." : "▶ Calculate"}
+          </button>
+
+          <button
+            onClick={fetchChain}
+            style={{ width: "100%", marginTop: "0.5rem", background: "#0369a1", border: "none", borderRadius: "4px", color: "#e0f2fe", padding: "0.75rem", fontSize: "0.8rem", fontFamily: "inherit", letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+          >
+            {loading ? "Getting Option Chain..." : "▶ Get Stock Option Chain"}
           </button>
         </div>
 
@@ -123,7 +146,7 @@ export default function App() {
               <p style={{ fontSize: "0.7rem", color: "#38bdf8", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "1rem" }}>▸ Monte Carlo</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem" }}>
                 {[
-                  ["Monte Carlo Price", monteCarloResult["Monte Carlo Value"]],
+                  ["Monte Carlo", monteCarloResult["Monte Carlo Value"]],
                   ["Lower Bound", monteCarloResult["Lower Bound"]],
                   ["Upper Bound", monteCarloResult["Upper Bound"]],
                 ].map(([label, val]) => (
@@ -133,6 +156,35 @@ export default function App() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {chainResult && (
+            <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: "8px", padding: "1.5rem" }}>
+              <p style={{ fontSize: "0.7rem", color: "#38bdf8", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "1rem" }}>▸ Options Chain — {ticker}</p>
+              <p style={{ fontSize: "0.65rem", color: "#64748b", marginBottom: "0.5rem" }}>CALLS</p>
+              <table style={{ width: "100%", fontSize: "0.7rem", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ color: "#64748b" }}>
+                    <th style={{ textAlign: "left", padding: "4px" }}>Strike</th>
+                    <th style={{ textAlign: "left", padding: "4px" }}>Bid</th>
+                    <th style={{ textAlign: "left", padding: "4px" }}>Ask</th>
+                    <th style={{ textAlign: "left", padding: "4px" }}>IV</th>
+                    <th style={{ textAlign: "left", padding: "4px" }}>OI</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chainResult["Calls"].slice(0, 10).map((row, i) => (
+                    <tr key={i} style={{ color: row.inTheMoney ? "#34d399" : "#e2e8f0", borderTop: "1px solid #1e3a5f" }}>
+                      <td style={{ padding: "4px" }}>{row.strike}</td>
+                      <td style={{ padding: "4px" }}>{row.bid}</td>
+                      <td style={{ padding: "4px" }}>{row.ask}</td>
+                      <td style={{ padding: "4px" }}>{(row.impliedVolatility * 100).toFixed(1)}%</td>
+                      <td style={{ padding: "4px" }}>{row.openInterest}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
