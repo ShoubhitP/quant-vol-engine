@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import yfinance as yf
 import numpy as np
 import json
+import requests
 from fastapi.responses import Response
 from pydantic import BaseModel
 from pricing.monte_carlo import monte_carlo_call
@@ -82,6 +83,10 @@ from fastapi.responses import Response
 @app.get("/chain/{ticker}")
 def get_chain(ticker: str):
     tickerObject = yf.Ticker(ticker)
+    tickerObject.session = requests.Session()
+    tickerObject.session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    })
     expiries = tickerObject.options
     chain = tickerObject.option_chain(expiries[0])
     raw = json.dumps({
