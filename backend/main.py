@@ -14,7 +14,7 @@ from pricing.monte_carlo import monte_carlo_call
 from datetime import datetime
 from pricing.implied_vol import extract_iv
 from pricing.svi import fit_svi
-
+from pricing.heston import heston_cos_price, calibrate_heston
 
 from pricing.black_scholes import (
     black_scholes_call, black_scholes_put,
@@ -162,6 +162,66 @@ def get_points(ticker: str):
         "surface": surface_data,
         "svi_fits": svi_fits
     }
+
+class hestonOption(BaseModel):
+
+    stockPrice: float
+    strikePrice: float
+    timeToExpiry: float
+    rfr: float
+    kappa: float
+    theta: float
+    xi: float
+    rho: float
+    v_0: float
+    option_type: str
+
+@app.post("/heston")
+def hestonCalculation(data: hestonOption):
+
+    return heston_cos_price(data.stockPrice, data.strikePrice, data.timeToExpiry, data.rfr, data.kappa, data.theta, data.xi, data.rho, data.v_0, data.option_type)
+
+@app.get("/heston-calibrate/{ticker}")
+def hestonCalibrater(ticker: str):
+    try: 
+
+        tickerObject = yf.Ticker(ticker)
+        stockPrice = tickerObject.fast_info["lastPrice"]
+        expiries = tickerObject.options # list of strikes, expiries, ivs
+        strikes = []
+        expiries_list = []
+        ivs = []
+        for i in range(min(6, len(expiries))): 
+            expiry_date = datetime.strptime(expiries[i], "%Y-%m-%d")
+            today = datetime.today()
+            timeToExpiry = (expiry_date - today).days / 365.0
+            forwardPrice = stockPrice * np.exp(0.05 * timeToExpiry)
+            chain = tickerObject.option_chain(expiries[i])
+            for _, row in chain.calls.iterrows():
+                bid1 = row["bid"]
+                ask1 = row["ask"]
+                strikePrice = row["strike"]
+                market_price = (bid1 + ask1)/2
+                if ask1 <= 0 or (ask1 - bid1) / ask1 >= 0.5:
+                    continue
+                else: 
+                    iv = extract_iv(market_price, stockPrice, strikePrice, timeToExpiry, 0.05, "call")
+                    if not np.isnan(iv):
+                        strikes.append(strikePrice)
+                        ivs.append(iv)
+                        expiries_list.append(timeToExpiry)
+        return calibrate_heston(strikes, expiries_list, ivs, stockPrice, 0.05).tolist()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+
+
+
+
+
+
 
 
 
