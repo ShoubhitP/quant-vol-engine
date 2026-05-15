@@ -11,6 +11,10 @@ import requests
 from fastapi.responses import Response
 from pydantic import BaseModel
 from pricing.monte_carlo import monte_carlo_call
+from datetime import datetime
+from pricing.implied_vol import extract_iv
+from pricing.svi import fit_svi
+
 
 from pricing.black_scholes import (
     black_scholes_call, black_scholes_put,
@@ -94,3 +98,72 @@ def get_chain(ticker: str):
         "Puts": json.loads(chain.puts.to_json(orient="records"))
     }).encode("utf-8")
     return Response(content=raw, media_type="application/json")
+
+@app.get("/vol-surface/{ticker}")
+def get_points(ticker: str):
+    tickerObject = yf.Ticker(ticker)
+    stockPrice = tickerObject.fast_info["lastPrice"]
+    expiries = tickerObject.options
+    if len(expiries) < 1:
+        return {"surface": [], "svi_fits": []}
+    surface_data = []
+    svi_fits = []
+    for i in range(min(6, len(expiries))): 
+        expiry_date = datetime.strptime(expiries[i], "%Y-%m-%d")
+        today = datetime.today()
+        timeToExpiry = (expiry_date - today).days / 365.0
+        forwardPrice = stockPrice * np.exp(0.05 * timeToExpiry)
+        chain = tickerObject.option_chain(expiries[i])
+        expiry_strikes = []
+        expiry_ivs = []
+        for _, row in chain.calls.iterrows():
+            bid1 = row["bid"]
+            ask1 = row["ask"]
+            strikePrice = row["strike"]
+            market_price = (bid1 + ask1)/2
+            if ask1 <= 0 or (ask1 - bid1) / ask1 >= 0.5:
+                continue
+            else: 
+                iv = extract_iv(market_price, stockPrice, strikePrice, timeToExpiry, 0.05, "call")
+                newDict = {
+                    "Strike Price": strikePrice, 
+                    "Time Till Expiry": timeToExpiry,
+                    "Extracted Volatility": iv
+                }
+                if not np.isnan(iv):
+                    expiry_strikes.append(newDict["Strike Price"])
+                    expiry_ivs.append(newDict["Extracted Volatility"])
+                    surface_data.append(newDict)
+        for _, row in chain.puts.iterrows():
+            bid1 = row["bid"]
+            ask1 = row["ask"]
+            strikePrice = row["strike"]
+            market_price = (bid1 + ask1)/2
+            if ask1 <=0 or (ask1 - bid1) / ask1 >= 0.5:
+                continue
+            else: 
+                iv = extract_iv(market_price, stockPrice, strikePrice, timeToExpiry, 0.05, "put")
+                newDict = {
+                    "Strike Price": strikePrice, 
+                    "Time Till Expiry": timeToExpiry,
+                    "Extracted Volatility": iv
+                }
+                if not np.isnan(iv):
+                    expiry_strikes.append(newDict["Strike Price"])
+                    expiry_ivs.append(newDict["Extracted Volatility"])
+                    surface_data.append(newDict)
+        try: 
+            fitParamArray = fit_svi(expiry_strikes, expiry_ivs, forwardPrice, timeToExpiry)
+            svi_fits.append({"T": timeToExpiry, "params": fitParamArray.tolist()})
+        except Exception as e:
+            print(f"SVI fit failed: {e}")
+            continue
+    return {
+        "surface": surface_data,
+        "svi_fits": svi_fits
+    }
+
+
+
+
+
