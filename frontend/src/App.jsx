@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 
 export default function App() {
   const [stockPrice, setStockPrice] = useState(100)
@@ -13,6 +13,9 @@ export default function App() {
   const [ticker, setTicker] = useState("AAPL")
   const [chainResult, setChainResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [surfaceData, setSurfaceData] = useState([])
+  const [sviFits, setSviFits] = useState([])
+  const surfaceRef = useRef(null)
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -35,6 +38,49 @@ export default function App() {
     const data = await res.json()
     setChainResult(data)
   }
+
+  const fetchVolSurface = async () => {
+
+    const res = await fetch(`http://localhost:8000/vol-surface/${ticker}`)
+    const data = await res.json()
+    setSurfaceData(data.surface)
+    setSviFits(data.svi_fits)
+  }
+
+  const svi_variance = (k, a, b, rho, m, sigma) => {
+
+    return a + b * (rho * (k - m) + Math.sqrt(((k-m) ** 2) + Math.pow(sigma,2)))
+  }
+   
+  const buildSurfaceGrid = (sviFits, stockPrice) => {
+    
+    const xGrid = Array.from({length: 50}, (_, i) => -1 + i * 0.04) //x-Grid
+    const yGrid = sviFits.map(fit => fit.T)
+    const zGrid = sviFits.map(fit => {
+                  const [a, b, rho, m, sigma] = fit.params
+                  return xGrid.map(k => Math.sqrt(svi_variance(k, a, b, rho, m, sigma)))
+                })
+    return {x: xGrid, y: yGrid, z: zGrid}
+
+  }
+
+  useEffect(() => {
+              if (surfaceData.length > 0 && surfaceRef.current) {
+                const {x, y, z} = buildSurfaceGrid(sviFits, stockPrice)
+                window.Plotly.newPlot(surfaceRef.current, [{
+                  type: 'surface',
+                  x: x,
+                  y: y,
+                  z: z,
+                }], {
+                  title: 'Implied Vol Surface',
+                  width: 700,
+                  height: 500,
+                  paper_bgcolor: '#0f172a',
+                  font: { color: '#e2e8f0' }
+                })
+              }
+            }, [surfaceData, sviFits])
 
   const fmt = (n) => n?.toFixed(4)
 
@@ -98,6 +144,17 @@ export default function App() {
           >
             {loading ? "Getting Option Chain..." : "▶ Get Stock Option Chain"}
           </button>
+
+          <button
+            onClick={fetchVolSurface}
+            style={{ width: "100%", marginTop: "0.5rem", background: "#0369a1", border: "none", borderRadius: "4px", color: "#e0f2fe", padding: "0.75rem", fontSize: "0.8rem", fontFamily: "inherit", letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+          >
+            {loading ? "Creating Vol Surface" : "▶ Get Vol Surface"}
+          </button>
+
+          
+
+
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -187,6 +244,7 @@ export default function App() {
               </table>
             </div>
           )}
+          {surfaceData.length > 0 && <div ref={surfaceRef} />}
         </div>
       </div>
     </div>
