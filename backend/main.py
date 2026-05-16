@@ -14,7 +14,7 @@ from pricing.monte_carlo import monte_carlo_call
 from datetime import datetime
 from pricing.implied_vol import extract_iv
 from pricing.svi import fit_svi
-from pricing.heston import heston_cos_price, calibrate_heston
+from pricing.heston import heston_fourier_price, calibrate_heston
 
 from pricing.black_scholes import (
     black_scholes_call, black_scholes_put,
@@ -179,7 +179,7 @@ class hestonOption(BaseModel):
 @app.post("/heston")
 def hestonCalculation(data: hestonOption):
 
-    return heston_cos_price(data.stockPrice, data.strikePrice, data.timeToExpiry, data.rfr, data.kappa, data.theta, data.xi, data.rho, data.v_0, data.option_type)
+    return heston_fourier_price(data.stockPrice, data.strikePrice, data.timeToExpiry, data.rfr, data.kappa, data.theta, data.xi, data.rho, data.v_0, data.option_type)
 
 @app.get("/heston-calibrate/{ticker}")
 def hestonCalibrater(ticker: str):
