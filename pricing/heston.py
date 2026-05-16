@@ -41,7 +41,7 @@ def calibrate_heston(strikes, expiries, ivs, S, r):
             heston_prices.append(heston_fourier_price(S, strike, expiry, r, kappa, theta, xi, rho, v0, "call"))
         return np.sum(np.square(np.array(heston_prices) - np.array(market_prices)))
 
-    result = optimize.minimize(loss, [2, 0.04, 0.3, -0.7, 0.04], bounds=[(0.001, None), (0.001, None), (0.001, None), (-0.999, 0.999), (0.001, None)])
+    result = optimize.differential_evolution(loss, bounds=[(0.001, 20), (0.001, 1), (0.001, 5), (-0.999, 0.999), (0.001, 1)])
     return result.x
 
 def main():
