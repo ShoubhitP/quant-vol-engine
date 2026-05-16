@@ -66,11 +66,10 @@ export default function App() {
     const xGrid = Array.from({length: 50}, (_, i) => -1 + i * 0.04) //x-Grid
     const yGrid = sviFits.map(fit => fit.T)
     const zGrid = sviFits.map(fit => {
-                  const [a, b, rho, m, sigma] = fit.params
-                  return xGrid.map(k => Math.sqrt(svi_variance(k, a, b, rho, m, sigma)))
-                })
-    return {x: xGrid, y: yGrid, z: zGrid}
-
+    const [a, b, rho, m, sigma] = fit.params
+    const T = fit.T
+    return xGrid.map(k => Math.sqrt(svi_variance(k, a, b, rho, m, sigma) / T))
+    })
   }
 
   useEffect(() => {
