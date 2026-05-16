@@ -7,8 +7,7 @@ def svi_variance(k, a, b, rho, m, sigma):
 
 def fit_svi(strikes, ivs, F, T):
     k_values = np.log(np.array(strikes) / F)
-    impliedVolatilityVals = np.square(np.array(ivs))
-
+    impliedVolatilityVals = np.square(np.array(ivs)) * T
     def lossHelper(params):
         a, b, rho, m, sigma = params
         return np.sum(np.square(svi_variance(k_values, a, b, rho, m, sigma) - impliedVolatilityVals))
