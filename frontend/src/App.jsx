@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 
+const API_BASE = "https://quant-vol-engine-production.up.railway.app"
+
 export default function App() {
   const [stockPrice, setStockPrice] = useState(100)
   const [strikePrice, setStrikePrice] = useState(100)
@@ -30,9 +32,9 @@ export default function App() {
     const body = JSON.stringify({ stockPrice, strikePrice, vol, rfr, timeToExpiry, numSimulations })
     const headers = { "Content-Type": "application/json" }
     const [priceRes, greeksRes, monteCarloRes] = await Promise.all([
-      fetch(" https://quant-vol-engine-production.up.railway.app/price", { method: "POST", headers, body }),
-      fetch(" https://quant-vol-engine-production.up.railway.app/greeks", { method: "POST", headers, body }),
-      fetch(" https://quant-vol-engine-production.up.railway.app/monte-carlo", { method: "POST", headers, body })
+      fetch(`${API_BASE}/price`, { method: "POST", headers, body }),
+      fetch(`${API_BASE}/greeks`, { method: "POST", headers, body }),
+      fetch(`${API_BASE}/monte-carlo`, { method: "POST", headers, body })
     ])
     const [priceData, greeksData, monteCarloData] = await Promise.all([priceRes.json(), greeksRes.json(), monteCarloRes.json()])
     setPriceResult(priceData)
@@ -41,14 +43,14 @@ export default function App() {
     setLoading(false)
   }
   const fetchChain = async () => {
-    const res = await fetch(` https://quant-vol-engine-production.up.railway.app/chain/${ticker}`)
+    const res = await fetch(`${API_BASE}/chain/${ticker}`)
     const data = await res.json()
     setChainResult(data)
   }
 
   const fetchVolSurface = async () => {
 
-    const res = await fetch(`https://quant-vol-engine-production.up.railway.app/vol-surface/${ticker}`)
+    const res = await fetch(`${API_BASE}/vol-surface/${ticker}`)
     const data = await res.json()
     setSurfaceData(data.surface)
     setSviFits(data.svi_fits)
@@ -110,7 +112,7 @@ export default function App() {
     const body = JSON.stringify({ stockPrice, strikePrice, timeToExpiry, rfr, kappa, theta, xi, rho, v_0, option_type })
     const headers = { "Content-Type": "application/json" }
 
-    const hestonRes = await fetch(" http://localhost:8000/heston", { method: "POST", headers, body })
+    const hestonRes = await fetch(`${API_BASE}/heston`, { method: "POST", headers, body })
     const hestonData = await hestonRes.json() 
 
     setHestonResult(hestonData)
@@ -118,7 +120,7 @@ export default function App() {
 
   const fetchCalibration = async () => {
 
-    const calibrationRes = await fetch(` http://localhost:8000/heston-calibrate/${ticker}`)
+    const calibrationRes = await fetch(`${API_BASE}/heston-calibrate/${ticker}`)
     const data = await calibrationRes.json()
     setCalibrationResult(data)
   }
