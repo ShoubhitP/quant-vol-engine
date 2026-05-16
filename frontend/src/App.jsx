@@ -62,18 +62,20 @@ export default function App() {
   }
    
   const buildSurfaceGrid = (sviFits, stockPrice) => {
-    
-    const xGrid = Array.from({length: 50}, (_, i) => -1 + i * 0.04) //x-Grid
-    const yGrid = sviFits.map(fit => fit.T)
-    const zGrid = sviFits.map(fit => {
+  if (!sviFits || sviFits.length === 0) return {x: [], y: [], z: []}
+  
+  const xGrid = Array.from({length: 50}, (_, i) => -1 + i * 0.04)
+  const yGrid = sviFits.map(fit => fit.T)
+  const zGrid = sviFits.map(fit => {
     const [a, b, rho, m, sigma] = fit.params
     const T = fit.T
     return xGrid.map(k => Math.sqrt(svi_variance(k, a, b, rho, m, sigma) / T))
-    })
-  }
+  })
+  return {x: xGrid, y: yGrid, z: zGrid}
+}
 
   useEffect(() => {
-              if (surfaceData.length > 0 && surfaceRef.current) {
+              if (surfaceData.length > 0 && sviFits.length > 0 && surfaceRef.current) {
                 const {x, y, z} = buildSurfaceGrid(sviFits, stockPrice)
                 window.Plotly.react(surfaceRef.current, [{
                   type: 'surface',
