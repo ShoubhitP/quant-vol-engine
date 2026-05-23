@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import sys
 import os
 
@@ -44,12 +45,31 @@ def validate_parity(S, K, vol, r, T):
     rightSide = S - K*np.exp(-1*r*T)
     print(f"Put-Call Parity:  Left Side = {leftSide:.4f}  |  Right Side = {rightSide:.4f}  |  Diff = {leftSide-rightSide:.4f}")
 
+def plot_mc_convergence(S, K, vol, r, T):
+
+    numSimulations = [10,100,1000,10000,100000]
+    mcPrice = []
+    bsPrice = black_scholes_call(S,K,vol,r,T)
+    for num in numSimulations:
+        price,lower,upper = monte_carlo_call(S,K,vol,r,T,num)
+        mcPrice.append(price)
+
+    plt.plot(numSimulations, mcPrice, label="Monte Carlo Price vs Number of Simulations")
+    plt.axhline(y=bsPrice, color='r', label="Black Scholes Fixed Price")
+    plt.xscale('log')
+    plt.xlabel("Number of Simulations")
+    plt.ylabel("Option Price")  
+    plt.title("Monte Carlo Price vs Number of Simulations")
+    plt.legend()
+    plt.show()
+
 def main():
-    
+
     validateGreeks(100,100,0.2,0.05,1)
-    validate_parity(100, 100, 0.20, 0.05, 1)
-    validate_parity(120, 100, 0.20, 0.05, 1)
-    validate_parity(80, 100, 0.20, 0.05, 1)
+    validate_parity(100, 100, 0.2, 0.05, 1)
+    validate_parity(120, 100, 0.2, 0.05, 1)
+    validate_parity(80, 100, 0.2, 0.05, 1)
+    plot_mc_convergence(100,100,0.2,0.05,1)
 
 main()
 
