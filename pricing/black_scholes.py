@@ -97,37 +97,6 @@ def zommaOption(stockPrice, strikePrice, vol, rfr, timeToExpiry):
     zommaVal = gammaOption(stockPrice, strikePrice, vol, rfr, timeToExpiry) * (((d1*d2)-1)/vol)
     return zommaVal
 
-def fd_delta(S, K, vol, r, T, eps=0.01):
-
-    return ((black_scholes_call(S+eps, K, vol, r, T) - black_scholes_call(S-eps, K, vol, r, T)) / (2*eps))
-
-def fd_gamma(S, K, vol, r, T, eps = 0.01):
-    return (((black_scholes_call(S+eps, K, vol, r, T) - (2*black_scholes_call(S,K,vol,r,T)) + black_scholes_call(S-eps,K, vol, r, T))) / (np.square(eps)))
-
-def fd_vega(S, K, vol, r, T, eps=0.01):
-    return ((black_scholes_call(S,K,vol+eps,r,T)) - black_scholes_call(S,K,vol-eps,r,T)) / (2*eps)
-
-def fd_theta(S, K, vol, r, T, eps=0.01):
-    return ((black_scholes_call(S,K,vol,r,T-eps,)) - black_scholes_call(S,K,vol,r,T+eps)) / (730*eps)
-
-def fd_rho(S, K, vol, r, T, eps = 0.01):
-    return ((black_scholes_call(S,K,vol,r+eps,T) - black_scholes_call(S,K,vol,r-eps,T))) / (2*eps)
-
-def validateGreeks(S, K, vol, r, T):
-    
-    greeks = [
-        ("Delta", delta_call(S, K, vol, r, T), fd_delta(S, K, vol, r, T, 0.01)),
-        ("Gamma", gammaOption(S, K, vol, r, T), fd_gamma(S, K, vol, r, T, 0.01)),
-        ("Vega",  vegaOption(S, K, vol, r, T), fd_vega(S, K, vol, r, T, 0.01)),
-        ("Theta", theta_call(S, K, vol, r, T), fd_theta(S, K, vol, r, T, 0.01)),
-        ("Rho",   rho_call(S, K, vol, r, T), fd_rho(S, K, vol, r, T, 0.01)),
-    ]
-
-    for name, analytical, fd in greeks:
-        diff = analytical - fd
-        print(f"{name:<6} Analytical = {analytical:.4f}  |  FD = {fd:.4f}  |  Diff = {diff:.4f}")
-
-
 def main():
     
     '''testCall1Val = black_scholes_call(100, 100, 0.2,0.05,1)
@@ -232,7 +201,5 @@ def main():
     print(f"{testZomma2:.4f} is the zomma for test 2 (ITM).")
     testZomma3 = zommaOption(50, 100, 0.2, 0.05, 1)
     print(f"{testZomma3:.4f} is the zomma for test 3 (OTM).")
-
-    validateGreeks(100,100,0.2,0.05,1)
 
 main()
