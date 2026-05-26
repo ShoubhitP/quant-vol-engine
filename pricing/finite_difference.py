@@ -1,6 +1,6 @@
 import numpy as np
 
-def explicit_fd_call(S, K, T, r, vol, N, M):
+def explicit_fd_call(S, K, vol, r, T, N, M):
     s_max = 2 * S
     delta_S = s_max / N
     delta_t = T / M
@@ -39,7 +39,7 @@ def explicit_fd_call(S, K, T, r, vol, N, M):
 
 if __name__ == "__main__":
 
-    print("Explicit Finite Difference Call Price:", explicit_fd_call(100, 100, 1, 0.05, 0.2, 100, 1000))
-    print("Explicit Finite Difference Call Price:", explicit_fd_call(100, 100, 1, 0.05, 0.2, 200, 2000))
+    print("Explicit Finite Difference Call Price:", explicit_fd_call(100, 100, 0.2, 0.05, 1, 100, 1000))
+    print("Explicit Finite Difference Call Price:", explicit_fd_call(100, 100, 0.2, 0.05, 1, 200, 2000))
 
 
