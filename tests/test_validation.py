@@ -6,7 +6,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from pricing.black_scholes import black_scholes_call, black_scholes_put, delta_call, delta_put, gammaOption, vegaOption, theta_call, theta_put, rho_call, rho_put, vannaOption, volgaOption, zommaOption
 from pricing.monte_carlo import monte_carlo_call
-from pricing.finite_difference import explicit_fd_call, implicit_fd_call
+from pricing.finite_difference import explicit_fd_call, implicit_fd_call, crank_nicolson_fd_call
 
 def fd_delta(S, K, vol, r, T, eps=0.01):
 
@@ -76,6 +76,12 @@ def validate_implicit(S, K, vol, r, T, N=100, M=1000):
     diff = bs_price - fd_price
     print(f"S={S:<6} BS={bs_price:.4f}  |  Implicit FD={fd_price:.4f}  |  Diff={diff:.4f}")
 
+def validate_crank(S, K, vol, r, T, N=100, M=1000):
+    bs_price = black_scholes_call(S, K, vol, r, T)
+    fd_price = crank_nicolson_fd_call(S, K, vol, r, T, N, M)
+    diff = bs_price - fd_price
+    print(f"S={S:<6} BS={bs_price:.4f}  |  Crank-Nicolson FD={fd_price:.4f}  |  Diff={diff:.4f}")
+
     
 def main():
 
@@ -90,6 +96,10 @@ def main():
     validate_implicit(100, 100, 0.2, 0.05, 1, 100, 1000)
     validate_implicit(120, 100, 0.2, 0.05, 1, 100, 1000)
     validate_implicit(80, 100, 0.2, 0.05, 1, 100, 1000)
+    validate_crank(100, 100, 0.2, 0.05, 1, 100, 1000)
+    validate_crank(120, 100, 0.2, 0.05, 1, 100, 1000)
+    validate_crank(80, 100, 0.2, 0.05, 1, 100, 1000)
+
 
 
 main()

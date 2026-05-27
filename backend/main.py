@@ -195,23 +195,30 @@ def hestonCalibrater(ticker: str):
             expiry_date = datetime.strptime(expiries[i], "%Y-%m-%d")
             today = datetime.today()
             timeToExpiry = (expiry_date - today).days / 365.0
-            forwardPrice = stockPrice * np.exp(0.05 * timeToExpiry)
-            chain = tickerObject.option_chain(expiries[i])
-            for _, row in chain.calls.iterrows():
-                bid1 = row["bid"]
-                ask1 = row["ask"]
-                strikePrice = row["strike"]
-                market_price = (bid1 + ask1)/2
-                if ask1 <= 0 or (ask1 - bid1) / ask1 >= 0.5:
-                    continue
-                else: 
-                    iv = extract_iv(market_price, stockPrice, strikePrice, timeToExpiry, 0.05, "call")
-                    if not np.isnan(iv):
-                        strikes.append(strikePrice)
-                        ivs.append(iv)
-                        expiries_list.append(timeToExpiry)
-        return calibrate_heston(strikes, expiries_list, ivs, stockPrice, 0.05).tolist()
+            if timeToExpiry <= 0:
+                continue
+            else: 
+                forwardPrice = stockPrice * np.exp(0.05 * timeToExpiry)
+                chain = tickerObject.option_chain(expiries[i])
+                for _, row in chain.calls.iterrows():
+                    bid1 = row["bid"]
+                    ask1 = row["ask"]
+                    strikePrice = row["strike"]
+                    market_price = (bid1 + ask1)/2
+                    if ask1 <= 0 or (ask1 - bid1) / ask1 >= 0.5:
+                        continue
+                    else: 
+                        iv = extract_iv(market_price, stockPrice, strikePrice, timeToExpiry, 0.05, "call")
+                        if not np.isnan(iv):
+                            strikes.append(strikePrice)
+                            ivs.append(iv)
+                            expiries_list.append(timeToExpiry)
+            print(f"Strikes: {len(strikes)}, Expiries: {len(expiries_list)}, IVs: {len(ivs)}")
+            return calibrate_heston(strikes, expiries_list, ivs, stockPrice, 0.05).tolist()
     except Exception as e:
+        print(f"CALIBRATION ERROR: {e}")
+        import traceback
+        traceback.print_exc()
         return {"error": str(e)}
 
 
