@@ -26,6 +26,7 @@ export default function App() {
   const [surfaceData, setSurfaceData] = useState([])
   const [sviFits, setSviFits] = useState([])
   const surfaceRef = useRef(null)
+  const [fdResult, setFdResult] = useState(null)
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -126,6 +127,14 @@ export default function App() {
     setCalibrationResult(data)
   }
 
+  const fetchFD = async () => {
+  const body = JSON.stringify({ stockPrice, strikePrice, vol, rfr, timeToExpiry })
+  const headers = { "Content-Type": "application/json" }
+  const res = await fetch(`${API_BASE}/fd`, { method: "POST", headers, body })
+  const data = await res.json()
+  setFdResult(data)
+}
+
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0f", color: "#e2e8f0", fontFamily: "'JetBrains Mono', 'Fira Code', monospace", padding: "2rem" }}>
@@ -204,6 +213,13 @@ export default function App() {
             style={{ width: "100%", marginTop: "0.5rem", background: "#0369a1", border: "none", borderRadius: "4px", color: "#e0f2fe", padding: "0.75rem", fontSize: "0.8rem", fontFamily: "inherit", letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
           >
             {loading ? "Calibrating Heston..." : "▶ Calibrate Heston"}
+          </button>
+
+          <button
+            onClick={fetchFD}
+            style={{ width: "100%", marginTop: "0.5rem", background: "#0369a1", border: "none", borderRadius: "4px", color: "#e0f2fe", padding: "0.75rem", fontSize: "0.8rem", fontFamily: "inherit", letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+          >
+            ▶ Get FD Prices
           </button>
 
           
@@ -323,7 +339,24 @@ export default function App() {
             </div>
           )}
 
-
+          {fdResult && (
+            <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: "8px", padding: "1.5rem" }}>
+              <p style={{ fontSize: "0.7rem", color: "#38bdf8", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "1rem" }}>▸ Finite Difference Prices</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                {[
+                  ["Explicit FD", fdResult["FD Explicit Price"]],
+                  ["Implicit FD", fdResult["FD Implicit Price"]],
+                  ["Crank-Nicolson", fdResult["FD Crank-Nicolson Price"]],
+                  ["American Put (CN)", fdResult["FD Crank-Nicolson Price For American Put Options"]],
+                ].map(([label, val]) => (
+                  <div key={label} style={{ background: "#1e293b", borderRadius: "6px", padding: "0.75rem" }}>
+                    <p style={{ fontSize: "0.6rem", color: "#64748b", marginBottom: "0.2rem", letterSpacing: "0.08em" }}>{label}</p>
+                    <p style={{ fontSize: "0.95rem", color: "#38bdf8", fontWeight: 600 }}>${fmt(val)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>
