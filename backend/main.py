@@ -15,6 +15,7 @@ from datetime import datetime
 from pricing.implied_vol import extract_iv
 from pricing.svi import fit_svi
 from pricing.heston import heston_fourier_price, calibrate_heston
+from pricing.finite_difference import explicit_fd_call, implicit_fd_call, american_put_cn, crank_nicolson_fd_call
 
 from pricing.black_scholes import (
     black_scholes_call, black_scholes_put,
@@ -42,6 +43,13 @@ class OptionInput(BaseModel):
     rfr: float
     timeToExpiry: float
     numSimulations: int
+
+class FDInput(BaseModel):
+    stockPrice: float
+    strikePrice: float
+    vol: float
+    rfr: float
+    timeToExpiry: float
 
 @app.post("/price")
 def price_option(data: OptionInput):
@@ -220,6 +228,21 @@ def hestonCalibrater(ticker: str):
         import traceback
         traceback.print_exc()
         return {"error": str(e)}
+    
+@app.post("/fd")
+def fd_price(data: FDInput):
+
+    fdPrices = {
+        "FD Explicit Price": explicit_fd_call(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry, N = 100, M = 1000),
+        "FD Implicit Price": implicit_fd_call(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry, N = 100, M = 1000),
+        "FD Crank-Nicolson Price": crank_nicolson_fd_call(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry, N = 100, M = 1000), 
+        "FD Crank-Nicolson Price For American Put Options": american_put_cn(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry, N = 100, M = 1000)
+    }
+
+    return fdPrices
+
+
+
 
 
 
