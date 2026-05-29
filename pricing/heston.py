@@ -33,16 +33,27 @@ def calibrate_heston(strikes, expiries, ivs, S, r):
     market_prices = []
     for strike, expiry, iv in zip(strikes, expiries, ivs):
         market_prices.append(black_scholes_call(S, strike, iv, r, expiry))
-
+    market_prices = np.array(market_prices)
     def loss(params):
-        heston_prices = []
         kappa, theta, xi, rho, v0 = params
+        if 2 * kappa * theta <= xi ** 2:
+            return 1e6
+        heston_prices = []
         for strike, expiry in zip(strikes, expiries):
-            heston_prices.append(heston_fourier_price(S, strike, expiry, r, kappa, theta, xi, rho, v0, "call"))
-        return np.sum(np.square(np.array(heston_prices) - np.array(market_prices)))
-
-    result = optimize.minimize(loss, [2, 0.04, 0.3, -0.7, 0.04], bounds=[(0.001, None), (0.001, None), (0.001, None), (-0.999, 0.999), (0.001, None)])
-    return result.x 
+            heston_prices.append(
+                heston_fourier_price(S, strike, expiry, r, kappa, theta, xi, rho, v0, "call")
+            )
+        heston_prices = np.array(heston_prices)
+        return np.sum((heston_prices - market_prices) ** 2)
+    result = optimize.minimize(loss, [2, 0.04, 0.3, -0.7, 0.04],
+    bounds=[
+        (0.001, 10),
+        (0.001, 2),
+        (0.001, 5),
+        (-0.999, 0.999),
+        (0.001, 2),
+    ], options={"maxiter": 50})
+    return result.x
 
 def main():
     testCall1Val = heston_fourier_price(100, 100, 1, 0.05, 2, 0.04, 0.3, -0.7, 0.04, "call", 100)

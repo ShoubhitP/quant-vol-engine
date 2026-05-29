@@ -191,38 +191,75 @@ def hestonCalculation(data: hestonOption):
 
 @app.get("/heston-calibrate/{ticker}")
 def hestonCalibrater(ticker: str):
-    try: 
+    try:
+        max_contracts = 30
 
         tickerObject = yf.Ticker(ticker)
         stockPrice = tickerObject.fast_info["lastPrice"]
-        expiries = tickerObject.options # list of strikes, expiries, ivs
+        expiries = tickerObject.options
+
         strikes = []
         expiries_list = []
         ivs = []
-        for i in range(min(6, len(expiries))): 
+
+        for i in range(min(6, len(expiries))):
             expiry_date = datetime.strptime(expiries[i], "%Y-%m-%d")
             today = datetime.today()
             timeToExpiry = (expiry_date - today).days / 365.0
+
             if timeToExpiry <= 0:
                 continue
-            else: 
-                forwardPrice = stockPrice * np.exp(0.05 * timeToExpiry)
-                chain = tickerObject.option_chain(expiries[i])
-                for _, row in chain.calls.iterrows():
-                    bid1 = row["bid"]
-                    ask1 = row["ask"]
-                    strikePrice = row["strike"]
-                    market_price = (bid1 + ask1)/2
-                    if ask1 <= 0 or (ask1 - bid1) / ask1 >= 0.5:
-                        continue
-                    else: 
-                        iv = extract_iv(market_price, stockPrice, strikePrice, timeToExpiry, 0.05, "call")
-                        if not np.isnan(iv):
-                            strikes.append(strikePrice)
-                            ivs.append(iv)
-                            expiries_list.append(timeToExpiry)
-            print(f"Strikes: {len(strikes)}, Expiries: {len(expiries_list)}, IVs: {len(ivs)}")
-            return calibrate_heston(strikes, expiries_list, ivs, stockPrice, 0.05).tolist()
+
+            chain = tickerObject.option_chain(expiries[i])
+
+            for _, row in chain.calls.iterrows():
+                bid = row["bid"]
+                ask = row["ask"]
+                strike = row["strike"]
+
+                if ask <= 0:
+                    continue
+
+                if (ask - bid) / ask >= 0.5:
+                    continue
+
+                market_price = (bid + ask) / 2
+                iv = extract_iv(
+                    market_price,
+                    stockPrice,
+                    strike,
+                    timeToExpiry,
+                    0.05,
+                    "call"
+                )
+
+                if not np.isnan(iv):
+                    strikes.append(strike)
+                    expiries_list.append(timeToExpiry)
+                    ivs.append(iv)
+
+                if len(strikes) >= max_contracts:
+                    break
+
+            if len(strikes) >= max_contracts:
+                break
+
+        print(f"Collected contracts: {len(strikes)}")
+
+        if len(strikes) < 5:
+            return {"error": "Not enough valid option contracts for Heston calibration"}
+
+        params = calibrate_heston(strikes, expiries_list, ivs, stockPrice, 0.05)
+
+        return {
+            "kappa": float(params[0]),
+            "theta": float(params[1]),
+            "xi": float(params[2]),
+            "rho": float(params[3]),
+            "v0": float(params[4]),
+            "contracts_used": len(strikes),
+        }
+
     except Exception as e:
         print(f"CALIBRATION ERROR: {e}")
         import traceback
@@ -238,22 +275,4 @@ def fd_price(data: FDInput):
         "FD Crank-Nicolson Price": crank_nicolson_fd_call(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry, N = 100, M = 1000), 
         "FD Crank-Nicolson Price For American Put Options": american_put_cn(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry, N = 100, M = 1000)
     }
-
     return fdPrices
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
