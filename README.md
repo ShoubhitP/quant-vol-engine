@@ -1,127 +1,340 @@
 # ⬡ Quant Vol Engine
 
-A full-stack quantitative derivatives analytics platform built from scratch. Implements Black-Scholes pricing, Monte Carlo simulation, implied volatility extraction, SVI surface fitting, and Heston stochastic volatility calibration — exposed through a FastAPI backend and interactive React frontend.
+A full-stack quantitative derivatives research platform implementing option pricing, stochastic volatility modeling, volatility surface construction, numerical PDE methods, and calibration to live market data.
 
-**Live Demo:** [quant-vol-engine.vercel.app](https://quant-vol-engine.vercel.app)
+Built from scratch using Python, FastAPI, React, and modern numerical methods commonly used in quantitative finance.
 
----
-
-## What This Project Does
-
-Most options pricing projects stop at Black-Scholes. This project goes further:
-
-1. **Extracts implied volatility** from live market option chains using Brent's method
-2. **Fits SVI parametrization** across strikes and expiries to model the volatility smile
-3. **Renders an interactive 3D volatility surface** showing how IV varies with strike and time
-4. **Prices options under Heston stochastic volatility** using Fourier integration (Gil-Pelaez inversion)
-5. **Calibrates Heston parameters** to live market data by minimizing squared pricing errors
+**Live Demo:** https://quant-vol-engine.vercel.app
 
 ---
 
-## Models Implemented
+# Overview
 
-### Black-Scholes
+Most options pricing projects stop at Black-Scholes.
 
-Closed-form option pricing derived from the heat equation. Full Greeks implemented: Δ, Γ, ν, Θ, ρ, vanna, volga, zomma.
+Quant Vol Engine extends significantly further by implementing:
 
-### Monte Carlo
+- Black-Scholes pricing and Greeks
+- Monte Carlo simulation with variance reduction
+- Finite Difference PDE solvers
+- Implied volatility extraction
+- SVI volatility smile fitting
+- Interactive volatility surface visualization
+- Heston stochastic volatility pricing
+- Heston parameter calibration to live market data
+- Numerical validation and convergence analysis
+- Runtime benchmarking and performance profiling
 
-Geometric Brownian Motion simulation with antithetic variates for variance reduction. Returns price with 95% confidence interval.
-
-### Implied Volatility Extraction
-
-Inverts Black-Scholes using Brent's root-finding method. Filters illiquid options by bid-ask spread and intrinsic value bounds.
-
-### SVI Surface Fitting
-
-Fits the Stochastic Volatility Inspired (SVI) parametrization to implied variance across strikes for each expiry:
-
-$$w(k) = a + b\left(\rho(k-m) + \sqrt{(k-m)^2 + \sigma^2}\right)$$
-
-Where $k = \log(K/F)$ is log-moneyness and $w = \sigma_{imp}^2 \cdot T$ is total implied variance.
-
-### Heston Model
-
-Stochastic volatility model where variance follows a mean-reverting CIR process:
-
-$$dS = rS\,dt + \sqrt{v}S\,dW_1$$
-$$dv = \kappa(\theta - v)\,dt + \xi\sqrt{v}\,dW_2$$
-
-Priced via Gil-Pelaez Fourier inversion of the characteristic function. Parameters (κ, θ, ξ, ρ, v₀) calibrated to market data.
+The goal of the project is not only to price derivatives, but to study how numerical methods, volatility models, and calibration techniques behave in practice.
 
 ---
 
-## Mathematical Foundations
+# Models Implemented
 
-The `notebooks/mathematical_foundations.ipynb` notebook contains:
+## Black-Scholes
 
-- Full derivation of Black-Scholes from the heat equation (change of variables, chain rule, drift elimination)
-- Explanation of the no-arbitrage condition embedded in the BS PDE
-- SVI parametrization and its role in arbitrage-free surface construction
+Closed-form option pricing derived from the Black-Scholes PDE.
 
----
+Implemented Greeks:
 
-## API Endpoints
+- Delta (Δ)
+- Gamma (Γ)
+- Vega (ν)
+- Theta (Θ)
+- Rho (ρ)
 
-| Method | Endpoint                     | Description                              |
-| ------ | ---------------------------- | ---------------------------------------- |
-| POST   | `/price`                     | Black-Scholes call/put price             |
-| POST   | `/greeks`                    | All Greeks including vanna, volga, zomma |
-| POST   | `/monte-carlo`               | MC price with confidence interval        |
-| GET    | `/chain/{ticker}`            | Live options chain via yfinance          |
-| GET    | `/vol-surface/{ticker}`      | IV extraction + SVI surface fitting      |
-| POST   | `/heston`                    | Heston model pricing                     |
-| GET    | `/heston-calibrate/{ticker}` | Calibrate Heston to live market data     |
+Higher-order Greeks:
+
+- Vanna
+- Volga
+- Zomma
 
 ---
 
-## Tech Stack
+## Monte Carlo Simulation
 
-| Layer       | Technology                           |
-| ----------- | ------------------------------------ |
-| Backend     | Python, FastAPI                      |
-| Pricing     | NumPy, SciPy                         |
-| Market Data | yfinance                             |
-| Frontend    | React, Plotly.js                     |
-| Deployment  | Railway (backend), Vercel (frontend) |
+Risk-neutral Geometric Brownian Motion simulation using antithetic variates for variance reduction.
 
----
+Features:
 
-## Project Structure
-
-quant-vol-engine/
-├── backend/
-│ └── main.py # FastAPI endpoints
-├── pricing/
-│ ├── black_scholes.py # BS pricing + Greeks
-│ ├── monte_carlo.py # MC simulation
-│ ├── implied_vol.py # IV extraction
-│ ├── svi.py # SVI fitting
-│ └── heston.py # Heston model + calibration
-├── frontend/
-│ └── src/App.jsx # React frontend
-└── notebooks/
-└── mathematical_foundations.ipynb
+- Variance reduction
+- Confidence interval estimation
+- Convergence analysis
+- Risk-neutral pricing framework
 
 ---
 
-## Running Locally
+## Finite Difference Methods
 
-```bash
-# Backend
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload
+Numerical PDE solvers for the Black-Scholes equation.
 
-# Frontend
-cd frontend
-npm install
-npm run dev
+Implemented schemes:
+
+- Explicit Finite Difference
+- Implicit Finite Difference
+- Crank-Nicolson
+
+Supports:
+
+- European option pricing
+- American put pricing
+
+---
+
+## Implied Volatility Extraction
+
+Recovers market-implied volatility by numerically inverting the Black-Scholes model using Brent's root-finding method.
+
+Features:
+
+- Bid-ask filtering
+- Intrinsic value validation
+- Robust root-finding
+
+---
+
+## SVI Volatility Surface Fitting
+
+Fits the Stochastic Volatility Inspired (SVI) parameterization to implied variance across strikes and expiries.
+
+SVI total variance model:
+
+[
+w(k)=a+b\left(\rho(k-m)+\sqrt{(k-m)^2+\sigma^2}\right)
+]
+
+where:
+
+- k = log-moneyness
+- w = total implied variance
+
+The resulting surface is rendered interactively through Plotly.
+
+---
+
+## Heston Stochastic Volatility Model
+
+Models variance as a stochastic mean-reverting process.
+
+[
+dS_t=rS_tdt+\sqrt{v_t}S_tdW_1
+]
+
+[
+dv_t=\kappa(\theta-v_t)dt+\xi\sqrt{v_t}dW_2
+]
+
+Priced using Fourier inversion of the characteristic function (Gil-Pelaez inversion).
+
+Calibrated parameters:
+
+- κ (mean reversion speed)
+- θ (long-run variance)
+- ξ (volatility of volatility)
+- ρ (correlation)
+- v₀ (initial variance)
+
+Calibration is performed against live option chains obtained from market data.
+
+---
+
+# Validation & Numerical Analysis
+
+A major focus of this project is verifying that numerical methods are correct, stable, and convergent.
+
+## Automated Testing
+
+The project currently contains:
+
+- 17 automated tests
+- Pricing validation
+- Greeks validation
+- Monte Carlo validation
+- Finite difference validation
+- Heston validation
+
+Tests verify:
+
+- Black-Scholes benchmark values
+- Put-call parity
+- Greeks against finite-difference approximations
+- Monte Carlo convergence
+- Finite Difference convergence
+- American put early-exercise behavior
+- Heston pricing consistency
+
+All tests currently pass.
+
+---
+
+## Greeks Validation
+
+Analytical Greeks are compared against finite-difference approximations.
+
+Validated quantities:
+
+- Delta
+- Gamma
+- Vega
+- Theta
+- Rho
+
+This confirms that closed-form implementations agree with numerical sensitivities.
+
+---
+
+## Monte Carlo Convergence Study
+
+Monte Carlo prices were benchmarked against Black-Scholes analytical solutions across simulation counts ranging from:
+
+- 100
+- 1,000
+- 10,000
+- 100,000
+- 1,000,000
+
+Observed behavior:
+
+- Convergence toward analytical values
+- Confidence interval shrinkage
+- Empirical agreement with O(1/√N) convergence
+
+---
+
+## Finite Difference Convergence Study
+
+Explicit, implicit, and Crank-Nicolson methods were compared against Black-Scholes benchmarks.
+
+Findings:
+
+- Numerical error decreases with grid refinement
+- Crank-Nicolson provides the strongest accuracy/stability tradeoff
+- Explicit schemes require significantly finer time discretization for stability
+
+---
+
+## Runtime Profiling
+
+All pricing engines were benchmarked to understand computational cost.
+
+| Model              | Average Runtime |
+| ------------------ | --------------- |
+| Black-Scholes      | 0.00013 s       |
+| Full Greeks        | 0.00039 s       |
+| Monte Carlo (10k)  | 0.040 s         |
+| Monte Carlo (100k) | 0.402 s         |
+| Explicit FD        | 0.152 s         |
+| Implicit FD        | 0.023 s         |
+| Crank-Nicolson     | 0.030 s         |
+| Heston Pricing     | 0.006 s         |
+
+---
+
+# Mathematical Foundations
+
+A companion research notebook documents the mathematical foundations underlying the project.
+
+Topics include:
+
+- Itô's Lemma
+- Black-Scholes PDE derivation
+- Heat Equation transformation
+- Girsanov's Theorem
+- Risk-neutral pricing
+- Feynman-Kac representation
+- Monte Carlo interpretation
+- Volatility smile construction
+- Black-Scholes assumption stress testing
+
+Notebook:
+
+```text
+notebooks/mathematical_foundations.ipynb
 ```
 
 ---
 
-## Author
+# API Endpoints
 
-**Shoubhit Pusuluri**  
-Ohio State University
+| Method | Endpoint                     | Description                   |
+| ------ | ---------------------------- | ----------------------------- |
+| POST   | `/price`                     | Black-Scholes option pricing  |
+| POST   | `/greeks`                    | Greeks calculation            |
+| POST   | `/monte-carlo`               | Monte Carlo pricing           |
+| GET    | `/chain/{ticker}`            | Live option chain             |
+| GET    | `/vol-surface/{ticker}`      | IV extraction and SVI fitting |
+| POST   | `/heston`                    | Heston pricing                |
+| GET    | `/heston-calibrate/{ticker}` | Heston calibration            |
+
+---
+
+# Technology Stack
+
+| Layer               | Technology      |
+| ------------------- | --------------- |
+| Backend             | FastAPI         |
+| Numerical Computing | NumPy, SciPy    |
+| Market Data         | yFinance        |
+| Frontend            | React           |
+| Visualization       | Plotly          |
+| Deployment          | Railway, Vercel |
+
+---
+
+# Project Structure
+
+```text
+quant-vol-engine/
+├── backend/
+│
+├── pricing/
+│   ├── black_scholes.py
+│   ├── monte_carlo.py
+│   ├── finite_difference.py
+│   ├── implied_vol.py
+│   ├── svi.py
+│   └── heston.py
+│
+├── research/
+│   ├── monte_carlo_convergence.py
+│   ├── fd_convergence.py
+│   └── profiling.py
+│
+├── tests/
+│   ├── test_black_scholes.py
+│   ├── test_greeks.py
+│   ├── test_monte_carlo.py
+│   ├── test_fd.py
+│   └── test_heston.py
+│
+├── cpp/
+│   ├── black_scholes.cpp
+│   └── monte_carlo.cpp
+│
+├── frontend/
+│
+└── notebooks/
+```
+
+---
+
+# Future Work
+
+Planned extensions:
+
+- GARCH volatility forecasting
+- Realized volatility engine
+- Volatility risk premium analysis
+- Implied vs realized volatility forecasting study
+- Volatility surface arbitrage detection
+- Arbitrage-free SVI calibration
+- C++ acceleration via pybind11
+- Heston calibration optimization
+
+---
+
+# Author
+
+**Shoubhit Pusuluri**
+
+The Ohio State University
