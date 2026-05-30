@@ -45,7 +45,3 @@ benchmark("Implicit FD Price", lambda: implicit_fd_call(S, K, vol, r, T, 100, 10
 benchmark("Crank-Nicolson Price", lambda: crank_nicolson_fd_call(S, K, vol, r, T, 100, 1000), runs=5)
 benchmark("Heston Price", lambda: heston_fourier_price(S, K, T, r, 2, 0.04, 0.3, -0.7, 0.04, "call"), runs=5
 )
-
-
-
-
