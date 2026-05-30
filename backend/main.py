@@ -18,7 +18,7 @@ from pricing.heston import heston_fourier_price, calibrate_heston
 from pricing.finite_difference import explicit_fd_call, implicit_fd_call, american_put_cn, crank_nicolson_fd_call
 from models.garch import volatility_snapshot
 from models.implied_vol_snapshot import vol_comparison_snapshot
-from research.svi_arbitrage import check_calendar_arbitrage
+from research.svi_arbitrage import check_calendar_arbitrage, check_butterfly_arbitrage
 from pricing.black_scholes import (
     black_scholes_call, black_scholes_put,
     delta_call, delta_put,
@@ -136,9 +136,11 @@ def get_points(ticker: str):
             else: 
                 iv = extract_iv(market_price, stockPrice, strikePrice, timeToExpiry, 0.05, "call")
                 newDict = {
-                    "Strike Price": strikePrice, 
+                    "Strike Price": strikePrice,
                     "Time Till Expiry": timeToExpiry,
-                    "Extracted Volatility": iv
+                    "Extracted Volatility": iv,
+                    "Option Price": market_price,
+                    "Option Type": "call",
                 }
                 if not np.isnan(iv):
                     expiry_strikes.append(newDict["Strike Price"])
@@ -154,9 +156,11 @@ def get_points(ticker: str):
             else: 
                 iv = extract_iv(market_price, stockPrice, strikePrice, timeToExpiry, 0.05, "put")
                 newDict = {
-                    "Strike Price": strikePrice, 
+                    "Strike Price": strikePrice,
                     "Time Till Expiry": timeToExpiry,
-                    "Extracted Volatility": iv
+                    "Extracted Volatility": iv,
+                    "Option Price": market_price,
+                    "Option Type": "put",
                 }
                 if not np.isnan(iv):
                     expiry_strikes.append(newDict["Strike Price"])
@@ -297,21 +301,32 @@ def get_vol_comparison(ticker: str):
 def surface_arbitrage(ticker: str):
     try:
         data = get_points(ticker)
-        calendar_violations = check_calendar_arbitrage(data["surface"])
 
-        violation_sizes = [
-            v["violation_size"] for v in calendar_violations
-        ]
+        calendar_violations = check_calendar_arbitrage(data["surface"])
+        butterfly_violations = check_butterfly_arbitrage(data["surface"])
+
+        calendar_sizes = [v["violation_size"] for v in calendar_violations]
+        butterfly_sizes = [abs(v["convexity"]) for v in butterfly_violations]
 
         return {
             "ticker": ticker.upper(),
+
             "calendar_arbitrage_count": len(calendar_violations),
-            "max_calendar_violation": max(violation_sizes) if violation_sizes else 0,
+            "max_calendar_violation": max(calendar_sizes) if calendar_sizes else 0,
             "avg_calendar_violation": (
-                sum(violation_sizes) / len(violation_sizes)
-                if violation_sizes else 0
+                sum(calendar_sizes) / len(calendar_sizes)
+                if calendar_sizes else 0
             ),
+
+            "butterfly_arbitrage_count": len(butterfly_violations),
+            "max_butterfly_violation": max(butterfly_sizes) if butterfly_sizes else 0,
+            "avg_butterfly_violation": (
+                sum(butterfly_sizes) / len(butterfly_sizes)
+                if butterfly_sizes else 0
+            ),
+
             "calendar_violations": calendar_violations[:20],
+            "butterfly_violations": butterfly_violations[:20],
         }
 
     except Exception as e:
