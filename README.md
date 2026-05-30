@@ -417,5 +417,4 @@ quant-vol-engine/
 
 **Shoubhit Pusuluri**
 
-Computer Science & Engineering + Mathematics
 The Ohio State University
