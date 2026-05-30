@@ -62,36 +62,8 @@ def volatility_snapshot(ticker):
     }
 
 def main():
-    ticker = "SPY"
-
-    returns = get_returns(ticker)
-
-    print(returns.head())
-    print(returns.tail())
-    print(f"Number of returns: {len(returns)}")
-    print(type(returns))
-
-    print(f"Mean daily return: {returns.mean():.6f}")
-    print(f"Daily volatility: {returns.std():.6f}")
-    print(f"Historical annualized volatility: {returns.std() * np.sqrt(252):.4f}")
-
-    result = fit_garch_model(returns)
-
-    print(result.summary())
-    print(result.params)
-
-    forecast = get_volatility_forecast(ticker)
-    print(forecast)
-
-    rv = realized_volatility(returns, window=30)
-
-    print(rv.head())
-    print(rv.tail())
-    print(f"Latest 30-day realized vol: {rv.iloc[-1]:.4f}")
-
     snapshot = volatility_snapshot("SPY")
     print(snapshot)
-
 
 if __name__ == "__main__":
     main()

@@ -16,6 +16,7 @@ from pricing.implied_vol import extract_iv
 from pricing.svi import fit_svi
 from pricing.heston import heston_fourier_price, calibrate_heston
 from pricing.finite_difference import explicit_fd_call, implicit_fd_call, american_put_cn, crank_nicolson_fd_call
+from models.garch import volatility_snapshot
 
 from pricing.black_scholes import (
     black_scholes_call, black_scholes_put,
@@ -276,3 +277,10 @@ def fd_price(data: FDInput):
         "FD Crank-Nicolson Price For American Put Options": american_put_cn(data.stockPrice, data.strikePrice, data.vol, data.rfr, data.timeToExpiry, N = 100, M = 1000)
     }
     return fdPrices
+
+@app.get("/vol-snapshot/{ticker}")
+def get_vol_snapshot(ticker: str):
+    try: 
+        return volatility_snapshot(ticker)
+    except Exception as e: 
+        return {"error": str(e)}
