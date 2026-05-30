@@ -1,8 +1,8 @@
 # ⬡ Quant Vol Engine
 
-A full-stack quantitative derivatives research platform implementing option pricing, stochastic volatility modeling, volatility surface construction, numerical PDE methods, and calibration to live market data.
+A full-stack quantitative derivatives research platform implementing option pricing, stochastic volatility modeling, volatility surface construction, volatility forecasting, numerical PDE methods, and calibration to live market data.
 
-Built from scratch using Python, FastAPI, React, and modern numerical methods commonly used in quantitative finance.
+Built from scratch using Python, FastAPI, React, NumPy, SciPy, and modern numerical methods used throughout quantitative finance.
 
 **Live Demo:** https://quant-vol-engine.vercel.app
 
@@ -17,15 +17,20 @@ Quant Vol Engine extends significantly further by implementing:
 - Black-Scholes pricing and Greeks
 - Monte Carlo simulation with variance reduction
 - Finite Difference PDE solvers
+- American option pricing
 - Implied volatility extraction
 - SVI volatility smile fitting
 - Interactive volatility surface visualization
 - Heston stochastic volatility pricing
 - Heston parameter calibration to live market data
+- GARCH volatility forecasting
+- Realized volatility analysis
+- Volatility forecasting backtests
+- ATM implied volatility vs GARCH comparisons
 - Numerical validation and convergence analysis
 - Runtime benchmarking and performance profiling
 
-The goal of the project is not only to price derivatives, but to study how numerical methods, volatility models, and calibration techniques behave in practice.
+The goal of the project is not only to price derivatives, but to study how volatility models, numerical methods, and forecasting techniques behave in practice.
 
 ---
 
@@ -37,13 +42,18 @@ Closed-form option pricing derived from the Black-Scholes PDE.
 
 Implemented Greeks:
 
+### First-Order Greeks
+
 - Delta (Δ)
-- Gamma (Γ)
 - Vega (ν)
 - Theta (Θ)
 - Rho (ρ)
 
-Higher-order Greeks:
+### Second-Order Greeks
+
+- Gamma (Γ)
+
+### Higher-Order Greeks
 
 - Vanna
 - Volga
@@ -60,6 +70,7 @@ Features:
 - Variance reduction
 - Confidence interval estimation
 - Convergence analysis
+- Statistical error measurement
 - Risk-neutral pricing framework
 
 ---
@@ -83,13 +94,14 @@ Supports:
 
 ## Implied Volatility Extraction
 
-Recovers market-implied volatility by numerically inverting the Black-Scholes model using Brent's root-finding method.
+Recovers market-implied volatility by numerically inverting Black-Scholes using Brent's root-finding algorithm.
 
 Features:
 
 - Bid-ask filtering
 - Intrinsic value validation
 - Robust root-finding
+- Live option-chain integration
 
 ---
 
@@ -97,32 +109,26 @@ Features:
 
 Fits the Stochastic Volatility Inspired (SVI) parameterization to implied variance across strikes and expiries.
 
-SVI total variance model:
+SVI Total Variance Model:
 
-[
-w(k)=a+b\left(\rho(k-m)+\sqrt{(k-m)^2+\sigma^2}\right)
-]
+w(k) = a + b(ρ(k − m) + √((k − m)² + σ²))
 
 where:
 
 - k = log-moneyness
 - w = total implied variance
 
-The resulting surface is rendered interactively through Plotly.
+The resulting surface is rendered interactively using Plotly.
 
 ---
 
 ## Heston Stochastic Volatility Model
 
-Models variance as a stochastic mean-reverting process.
+Models variance as a stochastic mean-reverting CIR process.
 
-[
-dS_t=rS_tdt+\sqrt{v_t}S_tdW_1
-]
+dSₜ = rSₜdt + √vₜSₜdW₁
 
-[
-dv_t=\kappa(\theta-v_t)dt+\xi\sqrt{v_t}dW_2
-]
+dvₜ = κ(θ − vₜ)dt + ξ√vₜdW₂
 
 Priced using Fourier inversion of the characteristic function (Gil-Pelaez inversion).
 
@@ -134,24 +140,53 @@ Calibrated parameters:
 - ρ (correlation)
 - v₀ (initial variance)
 
-Calibration is performed against live option chains obtained from market data.
+Calibration is performed against live option chains.
 
 ---
 
-## Volatility Forecasting Research
+# Volatility Research Layer
 
-The project includes a GARCH(1,1) volatility forecasting pipeline that compares model forecasts against future realized volatility.
+## Realized Volatility Engine
 
-### GARCH Backtest
+Computes rolling realized volatility from historical log returns.
 
-A 30-day volatility forecasting backtest was performed on SPY using rolling historical return data.
+Supports:
+
+- Historical annualized volatility
+- Rolling realized volatility
+- Future realized volatility generation for backtesting
+
+---
+
+## GARCH(1,1) Forecasting
+
+Implements volatility forecasting using a GARCH(1,1) process.
+
+Forecasts:
+
+- 1-day volatility
+- 5-day volatility
+- 10-day volatility
+- 30-day volatility
+
+Outputs:
+
+- Forecast volatility term structure
+- Model persistence
+- Volatility regime information
+
+---
+
+## Volatility Forecast Backtesting
+
+A rolling out-of-sample backtest was performed on SPY.
 
 For each forecast date:
 
-1. Fit GARCH(1,1) using only data available up to that date
-2. Forecast 30-day annualized volatility
-3. Compare forecast against the next 30 trading days of realized volatility
-4. Evaluate against naive and long-run volatility baselines
+1. Fit GARCH(1,1) using only information available at that time
+2. Forecast future volatility
+3. Compare against future realized volatility
+4. Benchmark against naive alternatives
 
 ### Forecast Accuracy
 
@@ -163,38 +198,35 @@ For each forecast date:
 
 ### Result
 
-GARCH slightly outperformed the naive current-realized-volatility forecast and clearly outperformed the long-run historical average baseline. However, the improvement over the naive forecast was marginal, suggesting that short-term realized volatility already contains much of the useful information captured by GARCH.
-
-This provides an honest research result rather than simply assuming the more complex model is better.
-
-## Automated Testing
-
-The project currently contains:
-
-- 17 automated tests
-- Pricing validation
-- Greeks validation
-- Monte Carlo validation
-- Finite difference validation
-- Heston validation
-
-Tests verify:
-
-- Black-Scholes benchmark values
-- Put-call parity
-- Greeks against finite-difference approximations
-- Monte Carlo convergence
-- Finite Difference convergence
-- American put early-exercise behavior
-- Heston pricing consistency
-
-All tests currently pass.
+GARCH slightly outperformed the naive realized-volatility forecast and clearly outperformed the long-run historical volatility baseline, providing an empirical evaluation of forecasting performance rather than assuming model superiority.
 
 ---
 
+## ATM IV vs GARCH Comparison
+
+The platform compares:
+
+- Current ATM implied volatility
+- GARCH 30-day forecast volatility
+- Latest realized volatility
+
+Example:
+
+| Metric                     | Value  |
+| -------------------------- | ------ |
+| ATM IV                     | 13.10% |
+| GARCH 30-Day Forecast      | 14.65% |
+| Latest Realized Volatility | 10.01% |
+
+This creates a bridge between options-implied expectations and statistical volatility forecasts.
+
+---
+
+# Validation & Numerical Analysis
+
 ## Greeks Validation
 
-Analytical Greeks are compared against finite-difference approximations.
+Analytical Greeks are validated against finite-difference approximations.
 
 Validated quantities:
 
@@ -204,13 +236,11 @@ Validated quantities:
 - Theta
 - Rho
 
-This confirms that closed-form implementations agree with numerical sensitivities.
-
 ---
 
 ## Monte Carlo Convergence Study
 
-Monte Carlo prices were benchmarked against Black-Scholes analytical solutions across simulation counts ranging from:
+Monte Carlo prices were benchmarked against Black-Scholes analytical solutions using simulation counts ranging from:
 
 - 100
 - 1,000
@@ -222,25 +252,23 @@ Observed behavior:
 
 - Convergence toward analytical values
 - Confidence interval shrinkage
-- Empirical agreement with O(1/√N) convergence
+- Agreement with O(1/√N) convergence
 
 ---
 
 ## Finite Difference Convergence Study
 
-Explicit, implicit, and Crank-Nicolson methods were compared against Black-Scholes benchmarks.
+Explicit, implicit, and Crank-Nicolson methods were benchmarked against Black-Scholes solutions.
 
 Findings:
 
-- Numerical error decreases with grid refinement
+- Error decreases under grid refinement
 - Crank-Nicolson provides the strongest accuracy/stability tradeoff
-- Explicit schemes require significantly finer time discretization for stability
+- Explicit schemes require stricter stability conditions
 
 ---
 
-## Runtime Profiling
-
-All pricing engines were benchmarked to understand computational cost.
+## Runtime Benchmarking
 
 | Model              | Average Runtime |
 | ------------------ | --------------- |
@@ -255,9 +283,34 @@ All pricing engines were benchmarked to understand computational cost.
 
 ---
 
+# Automated Testing
+
+The platform currently contains:
+
+- 18+ automated tests
+- Pricing validation
+- Greeks validation
+- Monte Carlo validation
+- Finite Difference validation
+- Heston validation
+- GARCH validation
+
+Tests verify:
+
+- Black-Scholes benchmark values
+- Put-call parity
+- Greeks against finite-difference approximations
+- Monte Carlo convergence
+- Finite Difference convergence
+- American put early-exercise behavior
+- Heston pricing consistency
+- Realized volatility calculations
+
+---
+
 # Mathematical Foundations
 
-A companion research notebook documents the mathematical foundations underlying the project.
+A companion research notebook documents the mathematical foundations behind the platform.
 
 Topics include:
 
@@ -273,23 +326,23 @@ Topics include:
 
 Notebook:
 
-```text
 notebooks/mathematical_foundations.ipynb
-```
 
 ---
 
 # API Endpoints
 
-| Method | Endpoint                     | Description                   |
-| ------ | ---------------------------- | ----------------------------- |
-| POST   | `/price`                     | Black-Scholes option pricing  |
-| POST   | `/greeks`                    | Greeks calculation            |
-| POST   | `/monte-carlo`               | Monte Carlo pricing           |
-| GET    | `/chain/{ticker}`            | Live option chain             |
-| GET    | `/vol-surface/{ticker}`      | IV extraction and SVI fitting |
-| POST   | `/heston`                    | Heston pricing                |
-| GET    | `/heston-calibrate/{ticker}` | Heston calibration            |
+| Method | Endpoint                   | Description                            |
+| ------ | -------------------------- | -------------------------------------- |
+| POST   | /price                     | Black-Scholes option pricing           |
+| POST   | /greeks                    | Greeks calculation                     |
+| POST   | /monte-carlo               | Monte Carlo pricing                    |
+| GET    | /chain/{ticker}            | Live option chain                      |
+| GET    | /vol-surface/{ticker}      | IV extraction + SVI fitting            |
+| POST   | /heston                    | Heston pricing                         |
+| GET    | /heston-calibrate/{ticker} | Heston calibration                     |
+| GET    | /vol-snapshot/{ticker}     | Realized volatility + GARCH forecast   |
+| GET    | /vol-comparison/{ticker}   | ATM IV vs GARCH vs realized volatility |
 
 ---
 
@@ -299,6 +352,7 @@ notebooks/mathematical_foundations.ipynb
 | ------------------- | --------------- |
 | Backend             | FastAPI         |
 | Numerical Computing | NumPy, SciPy    |
+| Volatility Modeling | ARCH            |
 | Market Data         | yFinance        |
 | Frontend            | React           |
 | Visualization       | Plotly          |
@@ -308,52 +362,53 @@ notebooks/mathematical_foundations.ipynb
 
 # Project Structure
 
-```text
 quant-vol-engine/
+
 ├── backend/
-│
+
 ├── pricing/
-│   ├── black_scholes.py
-│   ├── monte_carlo.py
-│   ├── finite_difference.py
-│   ├── implied_vol.py
-│   ├── svi.py
-│   └── heston.py
-│
+│ ├── black_scholes.py
+│ ├── monte_carlo.py
+│ ├── finite_difference.py
+│ ├── implied_vol.py
+│ ├── svi.py
+│ └── heston.py
+
+├── models/
+│ ├── garch.py
+│ └── implied_vol_snapshot.py
+
 ├── research/
-│   ├── monte_carlo_convergence.py
-│   ├── fd_convergence.py
-│   └── profiling.py
-│
+│ ├── monte_carlo_convergence.py
+│ ├── fd_convergence.py
+│ ├── profiling.py
+│ └── garch_backtest.py
+
 ├── tests/
-│   ├── test_black_scholes.py
-│   ├── test_greeks.py
-│   ├── test_monte_carlo.py
-│   ├── test_fd.py
-│   └── test_heston.py
-│
+│ ├── test_black_scholes.py
+│ ├── test_greeks.py
+│ ├── test_monte_carlo.py
+│ ├── test_fd.py
+│ ├── test_heston.py
+│ └── test_garch.py
+
 ├── cpp/
-│   ├── black_scholes.cpp
-│   └── monte_carlo.cpp
-│
+│ ├── black_scholes.cpp
+│ └── monte_carlo.cpp
+
 ├── frontend/
-│
+
 └── notebooks/
-```
 
 ---
 
 # Future Work
 
-Planned extensions:
-
-- GARCH volatility forecasting
-- Realized volatility engine
-- Volatility risk premium analysis
-- Implied vs realized volatility forecasting study
 - Volatility surface arbitrage detection
 - Arbitrage-free SVI calibration
-- C++ acceleration via pybind11
+- Volatility risk premium analysis
+- Historical IV forecasting studies
+- pybind11 C++ acceleration
 - Heston calibration optimization
 
 ---
@@ -362,4 +417,5 @@ Planned extensions:
 
 **Shoubhit Pusuluri**
 
+Computer Science & Engineering + Mathematics
 The Ohio State University
