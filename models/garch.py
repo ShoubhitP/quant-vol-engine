@@ -41,15 +41,57 @@ def get_volatility_forecast(ticker, horizon=30):
         "beta": float(result.params["beta[1]"]),
         "persistence": float(result.params["alpha[1]"] + result.params["beta[1]"]),
     }
+def realized_volatility(returns, window=30):
+    rolling_daily_vol = returns.rolling(window).std()
+    annualized_realized_vol = rolling_daily_vol * np.sqrt(252)
+    return annualized_realized_vol.dropna()
 
-
-
+def volatility_snapshot(ticker):
+    returns = get_returns(ticker)
+    garch_forecast = get_volatility_forecast(ticker)
+    realized_vol = realized_volatility(returns, window=30)
+    return {
+        "ticker": ticker.upper(),
+        "historical_annualized_vol": float(returns.std() * np.sqrt(252)),
+        "latest_30d_realized_vol": float(realized_vol.iloc[-1]),
+        "garch_one_day": garch_forecast["one_day"],
+        "garch_five_day": garch_forecast["five_day"],
+        "garch_ten_day": garch_forecast["ten_day"],
+        "garch_thirty_day": garch_forecast["thirty_day"],
+        "persistence": garch_forecast["persistence"],
+    }
 
 def main():
-    
-    forecast = get_volatility_forecast("SPY")
+    ticker = "SPY"
+
+    returns = get_returns(ticker)
+
+    print(returns.head())
+    print(returns.tail())
+    print(f"Number of returns: {len(returns)}")
+    print(type(returns))
+
+    print(f"Mean daily return: {returns.mean():.6f}")
+    print(f"Daily volatility: {returns.std():.6f}")
+    print(f"Historical annualized volatility: {returns.std() * np.sqrt(252):.4f}")
+
+    result = fit_garch_model(returns)
+
+    print(result.summary())
+    print(result.params)
+
+    forecast = get_volatility_forecast(ticker)
     print(forecast)
 
-if __name__ == "__main__":
+    rv = realized_volatility(returns, window=30)
 
+    print(rv.head())
+    print(rv.tail())
+    print(f"Latest 30-day realized vol: {rv.iloc[-1]:.4f}")
+
+    snapshot = volatility_snapshot("SPY")
+    print(snapshot)
+
+
+if __name__ == "__main__":
     main()
