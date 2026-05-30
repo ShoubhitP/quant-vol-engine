@@ -18,6 +18,7 @@ from pricing.heston import heston_fourier_price, calibrate_heston
 from pricing.finite_difference import explicit_fd_call, implicit_fd_call, american_put_cn, crank_nicolson_fd_call
 from models.garch import volatility_snapshot
 from models.implied_vol_snapshot import vol_comparison_snapshot
+from research.svi_arbitrage import check_calendar_arbitrage
 from pricing.black_scholes import (
     black_scholes_call, black_scholes_put,
     delta_call, delta_put,
@@ -289,5 +290,29 @@ def get_vol_snapshot(ticker: str):
 def get_vol_comparison(ticker: str):
     try: 
         return vol_comparison_snapshot(ticker)
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.get("/surface-arbitrage/{ticker}")
+def surface_arbitrage(ticker: str):
+    try:
+        data = get_points(ticker)
+        calendar_violations = check_calendar_arbitrage(data["surface"])
+
+        violation_sizes = [
+            v["violation_size"] for v in calendar_violations
+        ]
+
+        return {
+            "ticker": ticker.upper(),
+            "calendar_arbitrage_count": len(calendar_violations),
+            "max_calendar_violation": max(violation_sizes) if violation_sizes else 0,
+            "avg_calendar_violation": (
+                sum(violation_sizes) / len(violation_sizes)
+                if violation_sizes else 0
+            ),
+            "calendar_violations": calendar_violations[:20],
+        }
+
     except Exception as e:
         return {"error": str(e)}
