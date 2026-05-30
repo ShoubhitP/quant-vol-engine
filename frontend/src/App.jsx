@@ -27,6 +27,7 @@ export default function App() {
   const [sviFits, setSviFits] = useState([])
   const surfaceRef = useRef(null)
   const [fdResult, setFdResult] = useState(null)
+  const [volComparison, setVolComparison] = useState(null)
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -135,6 +136,11 @@ export default function App() {
   setFdResult(data)
 }
 
+const fetchVolComparison = async () => {
+  const res = await fetch(`${API_BASE}/vol-comparison/${ticker}`)
+  const data = await res.json()
+  setVolComparison(data)
+}
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0f", color: "#e2e8f0", fontFamily: "'JetBrains Mono', 'Fira Code', monospace", padding: "2rem" }}>
@@ -222,9 +228,12 @@ export default function App() {
             ▶ Get FD Prices
           </button>
 
-          
-
-
+          <button 
+            onClick={fetchVolComparison}
+            style={{ width: "100%", marginTop: "0.5rem", background: "#0369a1", border: "none", borderRadius: "4px", color: "#e0f2fe", padding: "0.75rem", fontSize: "0.8rem", fontFamily: "inherit", letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+          >
+            ▶ Get Vol Comparison
+          </button> 
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -355,6 +364,43 @@ export default function App() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {volComparison && (
+            <div style={{ background: "#0f172a", border: "1px solid #1e3a5f", borderRadius: "8px", padding: "1.5rem" }}>
+              <p style={{ fontSize: "0.7rem", color: "#38bdf8", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: "1rem" }}>
+                ▸ Volatility Comparison
+              </p>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                {[
+                  ["ATM IV", volComparison.atm_iv],
+                  ["GARCH 30d", volComparison.garch_30d_forecast],
+                  ["30d Realized", volComparison.latest_30d_realized_vol],
+                  ["ATM IV - GARCH", volComparison.iv_minus_garch],
+                  ["ATM IV - Realized", volComparison.iv_minus_realized],
+                ].map(([label, val]) => (
+                  <div key={label} style={{ background: "#1e293b", borderRadius: "6px", padding: "0.75rem" }}>
+                    <p style={{ fontSize: "0.6rem", color: "#64748b", marginBottom: "0.2rem", letterSpacing: "0.08em" }}>
+                      {label}
+                    </p>
+                    <p style={{ fontSize: "0.95rem", color: "#38bdf8", fontWeight: 600 }}>
+                      {(val * 100).toFixed(2)}%
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <p style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "1rem", lineHeight: 1.6 }}>
+                {volComparison.iv_minus_garch > 0
+                  ? "Options-implied volatility is above the GARCH forecast."
+                  : "Options-implied volatility is below the GARCH forecast."}
+              </p>
+
+              <p style={{ fontSize: "0.7rem", color: "#64748b", marginTop: "0.75rem" }}>
+                Expiry: {volComparison.iv_expiry} · Days to expiry: {volComparison.days_to_expiry}
+              </p>
             </div>
           )}
 
