@@ -64,16 +64,35 @@ export default function App() {
   }
    
   const buildSurfaceGrid = (sviFits, stockPrice) => {
-  if (!sviFits || sviFits.length === 0) return {x: [], y: [], z: []}
-  
-  const xGrid = Array.from({length: 50}, (_, i) => -1 + i * 0.04)
+  if (!sviFits || sviFits.length === 0) {
+    return { x: [], y: [], z: [] }
+  }
+
+  const xGrid = Array.from({ length: 50 }, (_, i) => -1 + i * (2 / 49))
   const yGrid = sviFits.map(fit => fit.T)
+
   const zGrid = sviFits.map(fit => {
     const [a, b, rho, m, sigma] = fit.params
     const T = fit.T
-    return xGrid.map(k => Math.sqrt(svi_variance(k, a, b, rho, m, sigma) / T))
+
+    return xGrid.map(k => {
+      const variance = svi_variance(k, a, b, rho, m, sigma)
+
+      if (!Number.isFinite(variance) || variance <= 0 || variance > 4 || T <= 0) {
+        return null
+      }
+
+      const impliedVol = Math.sqrt(variance / T)
+
+      if (!Number.isFinite(impliedVol) || impliedVol > 5) {
+        return null
+      }
+
+      return impliedVol
+    })
   })
-  return {x: xGrid, y: yGrid, z: zGrid}
+
+  return { x: xGrid, y: yGrid, z: zGrid }
 }
 
   useEffect(() => {
