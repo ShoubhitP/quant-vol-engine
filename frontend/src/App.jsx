@@ -76,7 +76,7 @@ export default function App() {
       return { x: [], y: [], z: [] }
     }
 
-    const xGrid = Array.from({ length: 50 }, (_, i) => -1 + i * (2 / 49))
+    const xGrid = Array.from({ length: 50 }, (_, i) => -0.75 + i * (1.5 / 49))
     const yGrid = sviFits.map(fit => fit.T)
 
     const zGrid = sviFits.map(fit => {
