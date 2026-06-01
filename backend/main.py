@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from pricing.monte_carlo import monte_carlo_call
 from datetime import datetime
 from pricing.implied_vol import extract_iv
-from pricing.svi import fit_svi
+from pricing.svi import fit_svi, svi_variance
 from pricing.heston import heston_fourier_price, calibrate_heston
 from pricing.finite_difference import explicit_fd_call, implicit_fd_call, american_put_cn, crank_nicolson_fd_call
 from models.garch import volatility_snapshot
@@ -114,64 +114,129 @@ def get_points(ticker: str):
     tickerObject = yf.Ticker(ticker)
     stockPrice = tickerObject.fast_info["lastPrice"]
     expiries = tickerObject.options
+
     if len(expiries) < 1:
         return {"surface": [], "svi_fits": []}
+
     surface_data = []
     svi_fits = []
-    for i in range(min(6, len(expiries))): 
+
+    for i in range(min(6, len(expiries))):
         expiry_date = datetime.strptime(expiries[i], "%Y-%m-%d")
         today = datetime.today()
         timeToExpiry = (expiry_date - today).days / 365.0
+
+        if timeToExpiry <= 0:
+            continue
+
         forwardPrice = stockPrice * np.exp(0.05 * timeToExpiry)
         chain = tickerObject.option_chain(expiries[i])
+
         expiry_strikes = []
         expiry_ivs = []
+
         for _, row in chain.calls.iterrows():
             bid1 = row["bid"]
             ask1 = row["ask"]
             strikePrice = row["strike"]
-            market_price = (bid1 + ask1)/2
+            market_price = (bid1 + ask1) / 2
+
             if ask1 <= 0 or (ask1 - bid1) / ask1 >= 0.5:
                 continue
-            else: 
-                iv = extract_iv(market_price, stockPrice, strikePrice, timeToExpiry, 0.05, "call")
-                newDict = {
+
+            iv = extract_iv(
+                market_price,
+                stockPrice,
+                strikePrice,
+                timeToExpiry,
+                0.05,
+                "call"
+            )
+
+            if not np.isnan(iv) and np.isfinite(iv) and 0.01 <= iv <= 1.5:
+                expiry_strikes.append(strikePrice)
+                expiry_ivs.append(iv)
+
+                surface_data.append({
                     "Strike Price": strikePrice,
                     "Time Till Expiry": timeToExpiry,
                     "Extracted Volatility": iv,
                     "Option Price": market_price,
                     "Option Type": "call",
-                }
-                if not np.isnan(iv):
-                    expiry_strikes.append(newDict["Strike Price"])
-                    expiry_ivs.append(newDict["Extracted Volatility"])
-                    surface_data.append(newDict)
+                })
+
         for _, row in chain.puts.iterrows():
             bid1 = row["bid"]
             ask1 = row["ask"]
             strikePrice = row["strike"]
-            market_price = (bid1 + ask1)/2
-            if ask1 <=0 or (ask1 - bid1) / ask1 >= 0.5:
+            market_price = (bid1 + ask1) / 2
+
+            if ask1 <= 0 or (ask1 - bid1) / ask1 >= 0.5:
                 continue
-            else: 
-                iv = extract_iv(market_price, stockPrice, strikePrice, timeToExpiry, 0.05, "put")
-                newDict = {
+
+            iv = extract_iv(
+                market_price,
+                stockPrice,
+                strikePrice,
+                timeToExpiry,
+                0.05,
+                "put"
+            )
+
+            if not np.isnan(iv) and np.isfinite(iv) and 0.01 <= iv <= 1.5:
+                expiry_strikes.append(strikePrice)
+                expiry_ivs.append(iv)
+
+                surface_data.append({
                     "Strike Price": strikePrice,
                     "Time Till Expiry": timeToExpiry,
                     "Extracted Volatility": iv,
                     "Option Price": market_price,
                     "Option Type": "put",
-                }
-                if not np.isnan(iv):
-                    expiry_strikes.append(newDict["Strike Price"])
-                    expiry_ivs.append(newDict["Extracted Volatility"])
-                    surface_data.append(newDict)
-        try: 
-            fitParamArray = fit_svi(expiry_strikes, expiry_ivs, forwardPrice, timeToExpiry)
-            svi_fits.append({"T": timeToExpiry, "params": fitParamArray.tolist()})
-        except Exception as e:
-            print(f"SVI fit failed: {e}")
+                })
+
+        if len(expiry_strikes) < 5:
+            print(f"Skipping expiry {expiries[i]}: not enough valid IV points")
             continue
+
+        try:
+            fitParamArray = fit_svi(
+                expiry_strikes,
+                expiry_ivs,
+                forwardPrice,
+                timeToExpiry
+            )
+
+            test_k_grid = np.linspace(-1, 1, 50)
+            fitted_vols = []
+
+            for k in test_k_grid:
+                variance = svi_variance(k, *fitParamArray)
+
+                if variance <= 0 or not np.isfinite(variance):
+                    fitted_vols.append(np.nan)
+                else:
+                    fitted_vols.append(np.sqrt(variance / timeToExpiry))
+
+            fitted_vols = np.array(fitted_vols)
+
+            if (
+                np.any(~np.isfinite(fitted_vols)) or
+                np.nanmax(fitted_vols) > 1.5 or
+                np.nanmin(fitted_vols) < 0.01
+            ):
+                print(f"Rejected bad SVI fit for expiry {expiries[i]}")
+                continue
+
+            svi_fits.append({
+                "T": timeToExpiry,
+                "params": fitParamArray.tolist()
+            })
+
+        except Exception as e:
+            print(f"SVI fit failed for expiry {expiries[i]}: {e}")
+            continue
+
     return {
         "surface": surface_data,
         "svi_fits": svi_fits
