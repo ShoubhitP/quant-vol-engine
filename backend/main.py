@@ -225,7 +225,7 @@ def get_points(ticker: str):
                 continue
 
             if np.nanmax(finite_vols) > 1.5 or np.nanmin(finite_vols) < 0.03:
-                print(f"Rejected SVI fit for expiry {expiries[i]}: fitted vols out of range")
+                print(f"Rejected SVI fit for expiry {expiries[i]}: fitted vols out of range. Min: {np.nanmin(finite_vols):.3f}, Max: {np.nanmax(finite_vols):.3f}")
                 continue
 
             svi_fits.append({
