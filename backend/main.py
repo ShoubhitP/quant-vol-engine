@@ -395,4 +395,4 @@ def surface_arbitrage(ticker: str):
         }
 
     except Exception as e:
-        return {"error": str(e)}
+        return {"errors": str(e)}
