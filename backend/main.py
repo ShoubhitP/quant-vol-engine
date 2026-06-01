@@ -121,12 +121,12 @@ def get_points(ticker: str):
     surface_data = []
     svi_fits = []
 
-    for i in range(min(6, len(expiries))):
+    for i in range(min(8, len(expiries))):
         expiry_date = datetime.strptime(expiries[i], "%Y-%m-%d")
         today = datetime.today()
         timeToExpiry = (expiry_date - today).days / 365.0
 
-        if timeToExpiry <= 0:
+        if timeToExpiry <= 7 / 365:
             continue
 
         forwardPrice = stockPrice * np.exp(0.05 * timeToExpiry)
@@ -135,68 +135,64 @@ def get_points(ticker: str):
         expiry_strikes = []
         expiry_ivs = []
 
-        for _, row in chain.calls.iterrows():
-            bid1 = row["bid"]
-            ask1 = row["ask"]
-            strikePrice = row["strike"]
-            market_price = (bid1 + ask1) / 2
+        def process_option_row(row, option_type):
+            bid = row["bid"]
+            ask = row["ask"]
+            strike = row["strike"]
 
-            if ask1 <= 0 or (ask1 - bid1) / ask1 >= 0.5:
-                continue
+            if ask <= 0 or bid < 0:
+                return
+
+            spread = ask - bid
+            mid = (bid + ask) / 2
+
+            if mid <= 0:
+                return
+
+            if spread / ask >= 0.5:
+                return
+
+            log_moneyness = np.log(strike / forwardPrice)
+
+            # Avoid extremely far wings. They destabilize SVI fitting.
+            if abs(log_moneyness) > 0.75:
+                return
 
             iv = extract_iv(
-                market_price,
+                mid,
                 stockPrice,
-                strikePrice,
+                strike,
                 timeToExpiry,
                 0.05,
-                "call"
+                option_type
             )
 
-            if not np.isnan(iv) and np.isfinite(iv) and 0.01 <= iv <= 1.5:
-                expiry_strikes.append(strikePrice)
-                expiry_ivs.append(iv)
+            if np.isnan(iv) or not np.isfinite(iv):
+                return
 
-                surface_data.append({
-                    "Strike Price": strikePrice,
-                    "Time Till Expiry": timeToExpiry,
-                    "Extracted Volatility": iv,
-                    "Option Price": market_price,
-                    "Option Type": "call",
-                })
+            # Keep realistic equity vols but do not over-tighten.
+            if iv < 0.03 or iv > 1.5:
+                return
+
+            expiry_strikes.append(strike)
+            expiry_ivs.append(iv)
+
+            surface_data.append({
+                "Strike Price": strike,
+                "Time Till Expiry": timeToExpiry,
+                "Extracted Volatility": iv,
+                "Option Price": mid,
+                "Option Type": option_type,
+            })
+
+        for _, row in chain.calls.iterrows():
+            process_option_row(row, "call")
 
         for _, row in chain.puts.iterrows():
-            bid1 = row["bid"]
-            ask1 = row["ask"]
-            strikePrice = row["strike"]
-            market_price = (bid1 + ask1) / 2
+            process_option_row(row, "put")
 
-            if ask1 <= 0 or (ask1 - bid1) / ask1 >= 0.5:
-                continue
-
-            iv = extract_iv(
-                market_price,
-                stockPrice,
-                strikePrice,
-                timeToExpiry,
-                0.05,
-                "put"
-            )
-
-            if not np.isnan(iv) and np.isfinite(iv) and 0.01 <= iv <= 1.5:
-                expiry_strikes.append(strikePrice)
-                expiry_ivs.append(iv)
-
-                surface_data.append({
-                    "Strike Price": strikePrice,
-                    "Time Till Expiry": timeToExpiry,
-                    "Extracted Volatility": iv,
-                    "Option Price": market_price,
-                    "Option Type": "put",
-                })
-
-        if len(expiry_strikes) < 5:
-            print(f"Skipping expiry {expiries[i]}: not enough valid IV points")
+        if len(expiry_strikes) < 8:
+            print(f"Skipping expiry {expiries[i]}: only {len(expiry_strikes)} valid IV points")
             continue
 
         try:
@@ -207,7 +203,9 @@ def get_points(ticker: str):
                 timeToExpiry
             )
 
-            test_k_grid = np.linspace(-1, 1, 50)
+            # Validate on realistic central moneyness range.
+            # Do not kill the expiry just because one wing point misbehaves.
+            test_k_grid = np.linspace(-0.75, 0.75, 50)
             fitted_vols = []
 
             for k in test_k_grid:
@@ -215,17 +213,19 @@ def get_points(ticker: str):
 
                 if variance <= 0 or not np.isfinite(variance):
                     fitted_vols.append(np.nan)
-                else:
-                    fitted_vols.append(np.sqrt(variance / timeToExpiry))
+                    continue
+
+                fitted_vols.append(np.sqrt(variance / timeToExpiry))
 
             fitted_vols = np.array(fitted_vols)
+            finite_vols = fitted_vols[np.isfinite(fitted_vols)]
 
-            if (
-                np.any(~np.isfinite(fitted_vols)) or
-                np.nanmax(fitted_vols) > 1.5 or
-                np.nanmin(fitted_vols) < 0.01
-            ):
-                print(f"Rejected bad SVI fit for expiry {expiries[i]}")
+            if len(finite_vols) < 40:
+                print(f"Rejected SVI fit for expiry {expiries[i]}: too many invalid fitted vols")
+                continue
+
+            if np.nanmax(finite_vols) > 1.5 or np.nanmin(finite_vols) < 0.03:
+                print(f"Rejected SVI fit for expiry {expiries[i]}: fitted vols out of range")
                 continue
 
             svi_fits.append({

@@ -100,13 +100,6 @@ export default function App() {
       })
     })
 
-    console.log("Surface grid shape:", {
-      xLength: xGrid.length,
-      yLength: yGrid.length,
-      zRows: zGrid.length,
-      zCols: zGrid[0]?.length,
-    })
-
     return { x: xGrid, y: yGrid, z: zGrid }
   }
 
