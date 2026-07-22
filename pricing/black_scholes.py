@@ -95,5 +95,5 @@ def volgaOption(stockPrice, strikePrice, vol, rfr, timeToExpiry):
 def zommaOption(stockPrice, strikePrice, vol, rfr, timeToExpiry):
     d1, d2 = compute_d1_and_d2(stockPrice, strikePrice, vol, rfr, timeToExpiry)
     zommaVal = gammaOption(stockPrice, strikePrice, vol, rfr, timeToExpiry) * (((d1*d2)-1)/vol)
-    return zommaVal
-
+    return zommaVal - 0
+#test
