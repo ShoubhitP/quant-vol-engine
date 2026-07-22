@@ -8,13 +8,13 @@ Built to explore the mathematics, numerical methods, and software engineering be
 
 # Live Demo
 
-**Frontend:** [LINK]
+**Frontend:** https://quant-vol-engine.vercel.app
 
-**Backend API:** [LINK]
+**Backend API (Swagger Docs):** https://quant-vol-engine-production.up.railway.app/docs
 
-**GitHub Repository:** [LINK]
+**GitHub Repository:** https://github.com/ShoubhitP/quant-vol-engine
 
----
+**Deployment:** React (Vercel) • FastAPI (Railway) • C++ Extensions (pybind11)
 
 # Overview
 
